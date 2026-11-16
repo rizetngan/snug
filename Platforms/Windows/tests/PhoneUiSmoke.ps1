@@ -1,5 +1,6 @@
 ﻿param(
     [string]$Root = (Split-Path $PSScriptRoot -Parent),
+    [string]$Dll = "",
     [switch]$Capture
 )
 $ErrorActionPreference = 'Stop'
@@ -7,13 +8,13 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.Drawing
 $dotnet = Join-Path $Root '.tools\dotnet\dotnet.exe'
-$dll = Join-Path $Root 'artifacts\verify-build\Snug.Windows.dll'
+if ([string]::IsNullOrWhiteSpace($Dll)) { $Dll = Join-Path $Root 'artifacts\verify-build\Snug.Windows.dll' }
 $artifact = Join-Path $Root 'artifacts'
-if (-not (Test-Path $dotnet) -or -not (Test-Path $dll)) {
+if (-not (Test-Path $dotnet) -or -not (Test-Path $Dll)) {
     throw 'Release verification build missing. Build the solution first.'
 }
 
-$preview = Start-Process -FilePath $dotnet -ArgumentList ('"' + $dll + '" --catalog-preview') -PassThru
+$preview = Start-Process -FilePath $dotnet -ArgumentList ('"' + $Dll + '" --catalog-preview') -PassThru
 try {
     Start-Sleep -Seconds 3
     if ($preview.HasExited) { throw 'Phone preview exited at launch.' }
@@ -95,6 +96,41 @@ try {
 
     foreach ($item in @('手机型号', '搜索 App', '运行中', '全部')) {
         [void](Require-Control $item)
+    }
+    # The placed-window actions must be BELOW, never overlaid on, their window row.
+    # Also enforce the original AppCard: VStack(window-row, PlacedControls) hierarchy.
+    $xamlPath = Join-Path $Root 'src\Snug.Windows\PhoneSurfaceWindow.xaml'
+    [xml]$phoneMarkup = Get-Content -LiteralPath $xamlPath -Raw -Encoding UTF8
+    $namespaces = [System.Xml.XmlNamespaceManager]::new($phoneMarkup.NameTable)
+    $namespaces.AddNamespace('w', 'http://schemas.microsoft.com/winfx/2006/xaml/presentation')
+    $placedPanels = $phoneMarkup.SelectNodes('//w:StackPanel[@Margin="80,0,12,12"]', $namespaces)
+    if ($placedPanels.Count -ne 1) {
+        throw 'Phone card placed-controls panel must exist exactly once.'
+    }
+    $prior = $placedPanels.Item(0).PreviousSibling
+    while ($prior -and $prior.NodeType -ne [System.Xml.XmlNodeType]::Element) {
+        $prior = $prior.PreviousSibling
+    }
+    if (!$prior -or $prior.LocalName -ne 'Grid' -or $placedPanels.Item(0).ParentNode.LocalName -ne 'StackPanel') {
+        throw 'Placed controls must be a sibling below the window row, not inside its fixed-height Grid.'
+    }
+    Write-Output 'PHONE_CARD_STRUCTURE_PASS'
+
+    $restore = Find-VisibleAction '还原窗口'
+    if ($restore) {
+        $restoreRect = $restore.Current.BoundingRectangle
+        $closeType = [System.Windows.Automation.PropertyCondition]::new(
+            [System.Windows.Automation.AutomationElement]::NameProperty, '关闭窗口')
+        $closeButtons = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, $closeType)
+        for ($i = 0; $i -lt $closeButtons.Count; $i++) {
+            $closeRect = $closeButtons.Item($i).Current.BoundingRectangle
+            $width = [Math]::Min($restoreRect.Right, $closeRect.Right) - [Math]::Max($restoreRect.Left, $closeRect.Left)
+            $height = [Math]::Min($restoreRect.Bottom, $closeRect.Bottom) - [Math]::Max($restoreRect.Top, $closeRect.Top)
+            if ($width -gt 1 -and $height -gt 1) {
+                throw 'Phone card restore button overlaps a window close button.'
+            }
+        }
+        Write-Output 'PHONE_CARD_NO_OVERLAP_PASS'
     }
     Capture-Phone 'home'
     Press '全部'

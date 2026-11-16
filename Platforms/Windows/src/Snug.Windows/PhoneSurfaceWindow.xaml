@@ -263,8 +263,9 @@
                                                         AutomationProperties.Name="确认关闭"/>
                                             </StackPanel>
                                         </Grid>
+                                     </Grid>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                                                Margin="80,0,12,10">
+                                                Margin="80,0,12,12">
                                         <StackPanel.Visibility>
                                             <MultiBinding Converter="{StaticResource PlacedWindowVisibility}">
                                                 <Binding/>
@@ -302,7 +303,6 @@
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
-                                    </Grid>
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

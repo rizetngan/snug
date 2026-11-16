@@ -51,3 +51,11 @@ Other visual notes: both screenshots have a similar App title, search, Running/A
 - Apple's CGVirtualDisplay and macOS Accessibility are not Windows APIs. Behavior should be ported with Windows-specific Win32/VDD equivalents; Swift cannot be mechanically copied.
 - This audit is grounded in checked-in source and **previous test evidence**, not a newly executed real-device mobile screenshot comparison.
 - macOS original 2.4.4 does not claim finished iPad/tablet workflow; do not count that planned feature as a Windows-only regression.
+## 2026-11-16 execution update — Windows 0.2.22
+- **Resolved** visual card overlap. `PhoneSurfaceWindow.xaml` now places the placed-window action StackPanel *after* the 56-point window-row Grid, as a sibling in the row's vertical StackPanel, following upstream `PhoneAppCard.swift`.
+- Evidence screenshot: `F:\snug for Windows\diagnostics\SNUG_0.2.22_PHONE_CARD_FIXED.png`; header row, placed window status and independent Restore button are clearly separated.
+- New `tests/PhoneUiSmoke.ps1` checks the XAML visual hierarchy and verifies restore button has no positive-area overlap with any Close-window button; checks both passed using actual UIAutomation in the 0.2.22 preview.
+- The full phone UI smoke passed: Home, All, Search, Confirmation, Model Picker and Return; six preview screenshots were captured to `Platforms/Windows/artifacts/phone-parity-*.png`.
+- `AppController.VersionText` now derives from the running assembly; settings-preview UIAutomation reported **0.2.22**.
+- Core tests 136/136, Release build 0 errors and 0 warnings.
+- Pending still: real iPhone + UU finger verification, session controller classification, left-behind record reattachment and driver-mode recovery. The running 0.2.21 candidate was not replaced during this isolated preview verification.
