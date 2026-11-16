@@ -17,6 +17,7 @@ public sealed class MouseGestureHook : IDisposable
     private WindowBounds? _region;
     private double _regionScale = 1;
     private PointD _heldPress;
+    private bool _passthroughBrowserChrome;
     private bool _disposed;
 
     public MouseGestureHook()
@@ -53,6 +54,7 @@ public sealed class MouseGestureHook : IDisposable
     public void Stop()
     {
         _coastTimer.Stop();
+        _passthroughBrowserChrome = false;
         if (_hook == IntPtr.Zero) return;
         NativeMethods.UnhookWindowsHookEx(_hook);
         _hook = IntPtr.Zero;
@@ -87,6 +89,15 @@ public sealed class MouseGestureHook : IDisposable
         var region = _region.Value;
         var inside = point.X >= region.X && point.X < region.X + region.Width
             && point.Y >= region.Y && point.Y < region.Y + region.Height;
+        // Native browser tabs and address controls must receive the original
+        // UU press/release. Replay inside WH_MOUSE_LL loses Chrome tab clicks.
+        if (kind == PointerKind.Press)
+            _passthroughBrowserChrome = inside && IsNativeBrowserChrome(point);
+        if (_passthroughBrowserChrome)
+        {
+            if (kind == PointerKind.Release) _passthroughBrowserChrome = false;
+            return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
+        }
         var seconds = (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency;
         var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside, _regionScale);
 
@@ -101,6 +112,31 @@ public sealed class MouseGestureHook : IDisposable
             : new IntPtr(1);
     }
 
+    private bool IsNativeBrowserChrome(PointD point)
+    {
+        var hit = NativeMethods.WindowFromPoint(new NativeMethods.POINT
+        {
+            X = (int)point.X, Y = (int)point.Y
+        });
+        if (hit == IntPtr.Zero) return false;
+        var window = NativeMethods.GetAncestor(hit, 2); // GA_ROOT
+        if (window == IntPtr.Zero || !NativeMethods.GetWindowRect(window, out var rect))
+            return false;
+
+        NativeMethods.GetWindowThreadProcessId(window, out var processId);
+        if (processId == 0 || processId == Environment.ProcessId) return false;
+        try
+        {
+            using var process = Process.GetProcessById((int)processId);
+            return BrowserChromeHitTest.ShouldPassThrough(
+                process.ProcessName,
+                new WindowBounds(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top),
+                point, _regionScale);
+        }
+        catch (ArgumentException) { return false; }
+        catch (InvalidOperationException) { return false; }
+        catch (System.ComponentModel.Win32Exception) { return false; }
+    }
     private void Execute(TouchCommand command, PointerKind currentKind, PointD current)
     {
         switch (command.Kind)
