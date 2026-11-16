@@ -89,8 +89,9 @@ public struct ScreenFit: Equatable, Sendable, CustomStringConvertible {
 }
 
 extension TouchRegion {
-    /// 手势翻译管整块手机屏，阈值按这一档比基准宽度宽几倍放大（和小横条一样，在手机上划着手感不变）
-    public init(phoneScreen bounds: CGRect) {
-        self.init(frame: bounds, scale: ScreenFit.scale(screenWidth: bounds.width))
+    /// 手势翻译管整块手机屏，阈值按这一档比基准宽度宽几倍放大（和小横条一样，在手机上划着手感不变）。
+    /// closeButton：手机屏上那个窗口的关闭按钮，点它时交给 Snug 先放回原位再关
+    public init(phoneScreen bounds: CGRect, closeButton: CloseButton? = nil) {
+        self.init(frame: bounds, scale: ScreenFit.scale(screenWidth: bounds.width), closeButton: closeButton)
     }
 }

@@ -84,8 +84,9 @@ App 将本机已安装的 Snug 按同样方式切块，只按字节范围从最�
 | :--- | :--- |
 | `--render-<界面> <目录>` | 将界面渲染为 PNG：`settings` / `welcome` / `about` / `legacy` / `phone` / `update`（不启动监控，不改动屏幕） |
 | `--preview-phone` | 正常启动，但不等待手机连接即创建手机屏，无需手机即可查看屏上的列表（**会真实创建一块屏幕**） |
-| `--dump-uu` | 打印从 UU远程 读取到的表格行、控制端与当前屏幕 |
+| `--dump-uu` | 打印从 UU远程 读取到的界面（文字、表格与行）、认出的控制端与当前屏幕 |
 | `--set-mode <屏幕编号> <宽> <高>` | 辅助进程模式：将手机屏切换至该档的 2 倍模式后立即退出（供主程序内部调用；高由主程序按手机型号的比例算好传入） |
+| `--restore-mode <屏幕编号> <模式编号> <宽> <高> <像素宽> <像素高> <刷新率> session\|permanent` | 辅助进程模式：将一块屏幕设回该模式后立即退出，只对当前登录生效或连同永久配置（供主程序内部调用：创建、移除手机屏时被系统改变模式的屏幕） |
 
 ## 数据与日志
 
@@ -94,6 +95,7 @@ App 将本机已安装的 Snug 按同样方式切块，只按字节范围从最�
 | `~/Library/Application Support/Snug/config.json` | 设置 |
 | `~/Library/Application Support/Snug/phone-screen.json` | 手机屏上窗口的还原记录 |
 | `~/Library/Application Support/Snug/zoom.json` | 各 App 记忆的字号级数 |
+| `~/Library/Application Support/Snug/left-behind.json` | 在 Snug 之外关闭的窗口待还原的位置与字号（保留两周） |
 | `~/Library/Logs/Snug.log` | 日志 |
 
 实现细节见 [工作原理](how-it-works.md)。

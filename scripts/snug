@@ -202,7 +202,7 @@ write_info_plist() {
 PLIST
 }
 
-# build/Snug.app：切模式的帮手进程就是 Snug 自己（带 --set-mode 运行），不另外打包
+# build/Snug.app：切模式的帮手进程就是 Snug 自己（带 --set-mode / --restore-mode 运行），不另外打包
 build_app() {
   local version; version="$(read_version)"
   step "编译（release，arm64 + x86_64）"

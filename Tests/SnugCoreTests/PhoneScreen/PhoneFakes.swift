@@ -38,6 +38,15 @@ final class FakeDisplays: PhoneDisplays {
     var widths: [DisplayID: Int] = [:]
     /// 每块屏登记的是哪个比例的档位
     private(set) var fits: [DisplayID: ScreenFit] = [:]
+    /// 别的屏此刻的模式。在 onCreate / onRetire 里改它，模拟 macOS 换屏幕组合时把别的屏拨回它记的模式
+    var others: [DisplayID: ScreenMode] = [:]
+    /// 设模式不成（帮手失败）：屏还是被拨动后的模式
+    var modeFails = false
+    /// 释放后不下线（显示器睡着时要等唤醒）：goOffline 才真下线，onRetire 那时才发生
+    var staysOnline = false
+    private(set) var lingering: Set<DisplayID> = []
+    /// 睡着的别的屏
+    var asleep: Set<DisplayID> = []
 
     init(journal: Journal) { self.journal = journal }
 
@@ -62,13 +71,26 @@ final class FakeDisplays: PhoneDisplays {
         return nextID
     }
 
-    func retire(_ id: DisplayID) async {
+    func retire(_ id: DisplayID) async -> Bool {
         journal.add("retire \(id)")
         retiredAt[id] = clock?()
         widths[id] = nil
         fits[id] = nil
+        guard !staysOnline else {
+            lingering.insert(id)
+            return false
+        }
+        onRetire?()
+        return true
+    }
+
+    /// 释放后迟迟没下线的屏这时下线（显示器醒了）
+    func goOffline(_ id: DisplayID) {
+        lingering.remove(id)
         onRetire?()
     }
+
+    func isOnline(_ id: DisplayID) -> Bool { widths[id] != nil || lingering.contains(id) }
 
     func reshape(_ id: DisplayID, to fit: ScreenFit) async -> Bool {
         journal.add("reshape \(id) \(fit)")
@@ -102,6 +124,16 @@ final class FakeDisplays: PhoneDisplays {
     /// 假主屏：左上角在原点，1512 宽，扣掉菜单栏
     nonisolated static let main = CGRect(x: 0, y: 25, width: 1512, height: 957)
     func mainArea() -> CGRect? { Self.main }
+
+    func otherDisplays() -> [OtherDisplay] {
+        others.sorted { $0.key < $1.key }.map { OtherDisplay(id: $0.key, name: "屏 \($0.key)", mode: $0.value, asleep: asleep.contains($0.key)) }
+    }
+
+    func setMode(_ id: DisplayID, _ mode: ScreenMode, permanently: Bool) async {
+        journal.add("mode \(id) \(mode)\(permanently ? " 永久" : "")")
+        guard !modeFails, others[id] != nil else { return }
+        others[id] = mode
+    }
 }
 
 /// 假窗口：记住每个窗口的位置、是否全屏、是否最小化、字号级数
@@ -190,6 +222,8 @@ final class FakeWindows: WindowControl {
         case asks(after: TimeInterval, save: Bool)
         /// 按了不关、也不问
         case stalls
+        /// 像飞书、微信那样：点关闭只是把窗口藏起来
+        case hides
     }
     func onClose(_ key: WindowKey, _ reaction: CloseReaction) { closeReactions.withLock { $0[key] = reaction } }
 
@@ -200,6 +234,10 @@ final class FakeWindows: WindowControl {
     /// 像飞书、微信点关闭那样：窗口藏起来，还在
     func hide(_ key: WindowKey) { state.withLock { $0[key]?.hidden = true } }
     func window(_ key: WindowKey) -> Window? { state.withLock { $0[key] } }
+    /// 带着 bundle ID 的窗口都属于哪些进程（假 App 按它报 pids）
+    func pids(bundleID: String) -> [Int32] {
+        Array(Set(state.withLock { $0 }.compactMap { $0.value.info?.bundleID == bundleID ? $0.key.pid : nil })).sorted()
+    }
     func setFrame(_ key: WindowKey, _ frame: CGRect) { state.withLock { $0[key]?.frame = frame } }
 
     private var mark: String {
@@ -246,8 +284,19 @@ final class FakeWindows: WindowControl {
         case nil: vanish(window)
         case .asks(let after, let save): ask(window, answeredAfter: after) { if save { self.vanish(window) } }
         case .stalls: break
+        case .hides: hide(window)
         }
         return true
+    }
+
+    func frames(of pid: Int32) async -> [WindowKey: CGRect] {
+        state.withLock { $0 }.filter { $0.key.pid == pid && shown($0.value) }.mapValues(\.frame)
+    }
+
+    /// 关闭按钮在窗口左上角（和真的一样，大小随便给）
+    func closeButton(_ window: WindowKey) async -> CGRect? {
+        guard reachable, let w = self.window(window) else { return nil }
+        return CGRect(x: w.frame.minX + 8, y: w.frame.minY + 8, width: 14, height: 14)
     }
 
     func look(_ window: WindowKey) async -> WindowLook? {
@@ -388,6 +437,12 @@ final class FakeApps: AppControl {
     }
 
     func pid(of app: AppInfo) async -> Int32? { running.withLock { $0.first { $0.value.bundleID == app.bundleID }?.key } }
+
+    /// 登记过在跑的，加上窗口带着这个 bundle ID 的进程
+    func pids(bundleID: String) async -> [Int32] {
+        let registered = running.withLock { $0.filter { $0.value.bundleID == bundleID }.map(\.key) }
+        return Array(Set(registered + windows.pids(bundleID: bundleID))).sorted()
+    }
 
     func open(_ app: AppInfo) async -> Int32? {
         journal.add("open \(app.bundleID)")

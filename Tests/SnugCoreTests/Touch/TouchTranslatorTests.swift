@@ -44,6 +44,44 @@ struct TouchTranslatorTests {
                 == TouchResponse(passOriginal: false, commands: [.replayPress, .replayCurrent]))
     }
 
+    @Test("点窗口自己的关闭按钮：不补发点击，交给 Snug 先放回原位再关；按住、滑动照旧")
+    func tapCloseButton() {
+        var region = phone
+        region.closeButton = CloseButton(frame: CGRect(x: 8, y: 30, width: 14, height: 14), window: 7, windowFrame: CGRect(x: 0, y: 22, width: 540, height: 900))
+        var t = TouchTranslator()
+        #expect(t.handle(input(.press, 15, 37, 0), in: region) == TouchResponse(passOriginal: false, commands: []))
+        #expect(t.handle(input(.release, 16, 38, 0.1), in: region)
+                == TouchResponse(passOriginal: false, commands: [.closeWindow(at: CGPoint(x: 15, y: 37))]))
+        // 按住还是右键菜单，滑走还是滚动：只拦「点一下」
+        _ = t.handle(input(.press, 15, 37, 1), in: region)
+        #expect(t.handle(input(.release, 15, 37, 1.6), in: region).commands == [.rightClick(at: CGPoint(x: 15, y: 37))])
+        _ = t.handle(input(.press, 15, 37, 2), in: region)
+        #expect(scrolls(t.handle(input(.drag, 15, 80, 2.05), in: region)).map(\.phase) == [.began, .changed])
+        // 按钮外点一下照常
+        _ = t.handle(input(.release, 15, 80, 2.1), in: region)
+        _ = t.handle(input(.press, 100, 300, 3), in: region)
+        #expect(t.handle(input(.release, 100, 300, 3.1), in: region).commands == [.replayPress, .replayCurrent])
+    }
+
+    @Test("关闭按钮点下去时再核对：这一点最上面的还是那个窗口、还在原来的位置才算；被拖走、被盖住、进了全屏都不算")
+    func closeButtonVerified() {
+        let window = CGRect(x: 0, y: 22, width: 540, height: 900)
+        let button = CloseButton(frame: CGRect(x: 8, y: 30, width: 14, height: 14), window: 7, windowFrame: window)
+        let tap = CGPoint(x: 15, y: 37)
+        typealias Shown = [(id: UInt32, frame: CGRect)]
+        let onTop: Shown = [(7, window), (3, CGRect(x: -800, y: 0, width: 2000, height: 2000))]
+        let rounded: Shown = [(7, CGRect(x: 1, y: 22, width: 540, height: 901))]   // 取整差一点
+        let covered: Shown = [(9, CGRect(x: 0, y: 22, width: 540, height: 892)), (7, window)]   // 被别的窗口盖住
+        let dragged: Shown = [(7, CGRect(x: 0, y: 200, width: 540, height: 900))]   // 被拖走了，那里是桌面
+        let fullScreen: Shown = [(7, CGRect(x: 0, y: 0, width: 540, height: 950))]   // 进了全屏
+        #expect(button.isFrontmost(at: tap, onScreen: onTop))
+        #expect(button.isFrontmost(at: CGPoint(x: 15, y: 37.5), onScreen: rounded))
+        #expect(!button.isFrontmost(at: tap, onScreen: covered))
+        #expect(!button.isFrontmost(at: tap, onScreen: dragged))
+        #expect(!button.isFrontmost(at: tap, onScreen: fullScreen))
+        #expect(!button.isFrontmost(at: CGPoint(x: 100, y: 300), onScreen: onTop))   // 不在按钮上
+    }
+
     @Test("快速滑动：开始滚动（began 再 changed），手指往下拖内容往下走，抬起发 ended")
     func swipeScrolls() {
         var t = TouchTranslator()

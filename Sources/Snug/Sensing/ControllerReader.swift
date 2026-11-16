@@ -43,13 +43,13 @@ final class ControllerReader {
         let box = box
         queue.async {
             let started = Self.uptime()
-            let rows = autoreleasepool { UUAccessibility.rows(pid: pid) }
+            let windows = autoreleasepool { UUAccessibility.windows(pid: pid) }
             let took = Self.uptime() - started
             let tooSlow = took > Self.maxReadDuration
             if tooSlow {
                 Log.warn(String(format: "读 UU 控制端表格用了 %.1fs，结果丢弃", took))
             }
-            let table = tooSlow ? .unreadable : rows.map(ControllerTable.init(rows:)) ?? .unreadable
+            let table = tooSlow ? .unreadable : windows.map(ControllerTable.init(windows:)) ?? .unreadable
             box.withLock { b in
                 guard b.generation == generation else { return }
                 b.inFlightSince = nil

@@ -10,7 +10,7 @@ struct PhoneDeskTests {
     func addScreen() async throws {
         let rig = try Rig()
         // macOS 会把上次留在这块屏上的窗口拉过去
-        rig.displays.onCreate = { rig.windows.setFrame(finder.key, phoneArea) }
+        rig.displays.onCreate = { [windows = rig.windows] in windows.setFrame(finder.key, phoneArea) }
         rig.desk.setWanted(true)
         await rig.desk.idle()
         #expect(rig.journal.all == ["snapshot", "create", "restore"])
@@ -39,7 +39,10 @@ struct PhoneDeskTests {
         #expect(rig.desk.state.placed?.zoom == 2)
         #expect(rig.desk.state.listVisible == false)
         #expect(rig.desk.state.work == nil)
-        #expect(rig.record == PhoneRecord(window: ghostty.key, app: ghostty.app, label: ghostty.label, original: ghosttyHome, wasFullScreen: false, zoom: 2))
+        #expect(rig.record == PhoneRecord(window: ghostty.key, app: ghostty.app, label: ghostty.label, original: ghosttyHome, wasFullScreen: false, zoom: 2,
+                                          bundleID: ghostty.bundleID, title: ghostty.title, filled: phoneArea))
+        #expect(rig.desk.state.closeButton == CloseButton(frame: CGRect(x: phoneArea.minX + 8, y: phoneArea.minY + 8, width: 14, height: 14),
+                                                          window: ghostty.key.id, windowFrame: phoneArea))
     }
 
     @Test("不在调字号名单里的 App 不发 ⌘=")
@@ -409,7 +412,8 @@ struct PhoneDeskTests {
         rig.timeline.advance(10)
         rig.desk.setWanted(false)
         await rig.desk.idle()
-        #expect(rig.record == PhoneRecord(window: ghostty.key, app: ghostty.app, label: ghostty.label, original: ghosttyHome, zoom: 2))
+        #expect(rig.record == PhoneRecord(window: ghostty.key, app: ghostty.app, label: ghostty.label, original: ghosttyHome, zoom: 2,
+                                          bundleID: ghostty.bundleID, title: ghostty.title, filled: phoneArea))
         rig.desk.recover()
         await rig.desk.idle()
         #expect(rig.record != nil)
@@ -498,9 +502,9 @@ struct PhoneDeskTests {
         await rig.ready()
         rig.windows.setFrame(finder.key, phoneArea)          // 手机上新开的窗口
         let mainSpot = CGRect(x: 100, y: 100, width: 540, height: 897)
-        rig.displays.onRetire = {
-            rig.windows.setFrame(finder.key, mainSpot)       // 系统把它挪到主屏
-            rig.windows.setFrame(ghostty.key, phoneArea)     // 别的窗口被系统挪乱
+        rig.displays.onRetire = { [windows = rig.windows] in
+            windows.setFrame(finder.key, mainSpot)           // 系统把它挪到主屏
+            windows.setFrame(ghostty.key, phoneArea)         // 别的窗口被系统挪乱
         }
         rig.timeline.advance(10)
         rig.desk.setWanted(false)

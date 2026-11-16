@@ -16,6 +16,6 @@
 - [对外文案](feedback-doc-writing.md) — 书面语、提炼不照抄；分点、图文对应；打码只糊必要的一小块
 - [回复 issue](feedback-issue-replies.md) — 不关别人的 issue；婉拒讲清定位、语气平和；做不到的要把实测和论证讲闭环；主人说发就不再审
 - [直接修不建 issue](feedback-direct-fix-no-issues.md) — bug 直接修、重构直接做，追溯靠 commit 信息
-- [Workflow 使用](feedback-workflow-scale.md) — 起之前先跟主人确认；审查只审一轮，维度含正确性、架构、工程审美、去冗余；5 个左右、一个核实者
+- [Workflow 使用](feedback-workflow-scale.md) — 起之前先跟主人确认；小 bug 修复不审；大改动审一轮，维度含正确性、架构、工程审美、去冗余；5 个左右、一个核实者
 - [宣传片](feedback-promo-video.md) — 在 kineto 做：发布会式快节奏、代码画为主、场景可演绎细节必须真；给 kineto 只给方向
 - [工程审美](feedback-engineering-taste.md) — 干净优雅、架构好维护好扩展；不过度防御几乎不可能的事

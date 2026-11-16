@@ -19,9 +19,9 @@ public enum LaunchMode: Equatable, Sendable {
     case render(RenderTarget, output: URL)
     /// 打印从 UU远程 读到的控制端与屏幕
     case dumpUU
-    /// 帮手模式：把手机屏换到 width × height 那一档（2 倍）后立即退出。高由主程序按比例算好传来，帮手不读配置。
-    /// 主程序亲自切模式，这块虚拟屏释放时会拖 40 秒以上才下线；交给短命的子进程切就没有这个问题
-    case setMode(display: DisplayID, width: Int, height: Int)
+    /// 帮手模式：把一块屏切到 target 后立即退出（手机屏换档，或把加屏、撤屏时被 macOS 拨动的屏设回去）。
+    /// 目标由主程序算好传来，帮手不读配置。主程序亲自切模式，手机屏释放时会拖 40 秒以上才下线；交给短命的子进程切就没有这个问题
+    case setMode(display: DisplayID, to: ModeTarget)
 
     public static let usage = """
     用法：Snug [模式]
@@ -30,6 +30,8 @@ public enum LaunchMode: Equatable, Sendable {
       --render-<界面> <目录>           把界面渲染成 PNG（界面：\(RenderTarget.allCases.map(\.rawValue).joined(separator: " / "))）
       --dump-uu                       打印从 UU远程 读到的表格行、控制端与屏幕
       --set-mode <屏幕编号> <宽> <高>   把手机屏换到这一档（点，2 倍）（主程序内部用）
+      --restore-mode <屏幕编号> <模式编号> <宽> <高> <像素宽> <像素高> <刷新率> session|permanent
+                                      把一块屏设回这个模式，只对本次登录或连永久配置（主程序内部用）
     """
 
     public static func parse(_ arguments: [String]) throws -> LaunchMode {
@@ -50,10 +52,15 @@ public enum LaunchMode: Equatable, Sendable {
             rest.removeFirst()
             return v
         }
-        func number<N: FixedWidthInteger>(_: N.Type) throws -> N {
+        func number<N: FixedWidthInteger>(_: N.Type, orZero: Bool = false) throws -> N {
             let raw = try value()
-            guard let n = N(raw), n > 0 else { throw LaunchModeError.invalidNumber(flag, raw) }
+            guard let n = N(raw), n > 0 || (orZero && n == 0) else { throw LaunchModeError.invalidNumber(flag, raw) }
             return n
+        }
+        func rate() throws -> Double {
+            let raw = try value()
+            guard let r = Double(raw), r.isFinite, r >= 0 else { throw LaunchModeError.invalidNumber(flag, raw) }
+            return r
         }
         if flag.hasPrefix("--render-"), let target = RenderTarget(rawValue: String(flag.dropFirst("--render-".count))) {
             return .render(target, output: URL(fileURLWithPath: try value()))
@@ -64,7 +71,14 @@ public enum LaunchMode: Equatable, Sendable {
         case "--dump-uu":
             return .dumpUU
         case "--set-mode":
-            return .setMode(display: try number(DisplayID.self), width: try number(Int.self), height: try number(Int.self))
+            return .setMode(display: try number(DisplayID.self), to: .hiDPI(width: try number(Int.self), height: try number(Int.self)))
+        case "--restore-mode":
+            let display = try number(DisplayID.self)
+            let mode = ScreenMode(ioModeID: Int32(bitPattern: try number(UInt32.self, orZero: true)), width: try number(Int.self), height: try number(Int.self),
+                                  pixelWidth: try number(Int.self), pixelHeight: try number(Int.self), refreshRate: try rate())
+            let scope = try value()
+            guard [ModeTarget.permanent, ModeTarget.session].contains(scope) else { throw LaunchModeError.invalidNumber(flag, scope) }
+            return .setMode(display: display, to: .exact(mode, permanently: scope == ModeTarget.permanent))
         default:
             throw LaunchModeError.unknownFlag(flag)
         }

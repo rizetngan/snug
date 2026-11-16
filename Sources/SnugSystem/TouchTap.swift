@@ -12,6 +12,8 @@ public final class TouchTap {
     /// 手势翻译管的范围（CGEvent 坐标）。主线程写，监听线程读
     private let region = OSAllocatedUnfairLock<TouchRegion?>(initialState: nil)
     private var session: TapSession?
+    /// 手机上点了手机屏上那个窗口的关闭按钮（核对过、点击已经吞掉了），交回窗口编号：在主线程上调
+    public var onCloseWindow: ((UInt32) -> Void)?
 
     public init() {}
 
@@ -29,7 +31,9 @@ public final class TouchTap {
     /// 起监听线程，等它报告监听建没建成
     private func start() -> Bool {
         guard session == nil else { return true }
-        let next = TapSession(region: region)
+        let next = TapSession(region: region) { [weak self] window in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.onCloseWindow?(window) } }
+        }
         guard next.start() else {
             Log.error("手势翻译开不起来：建事件监听失败（多半是没有辅助功能权限）")
             return false
@@ -50,6 +54,7 @@ public final class TouchTap {
 /// 一次监听：自己的线程、自己的 run loop、自己的状态机。除了 start / stop，其余都只在这个线程上跑
 private final class TapSession: @unchecked Sendable {
     private let region: OSAllocatedUnfairLock<TouchRegion?>
+    private let closeWindow: @Sendable (UInt32) -> Void
     /// 监听线程的 run loop：start 等它建好才返回，之后只读
     private var runLoop: CFRunLoop?
 
@@ -60,7 +65,10 @@ private final class TapSession: @unchecked Sendable {
     private var coastTimer: CFRunLoopTimer?
     private var uu = UUEventSource()
 
-    init(region: OSAllocatedUnfairLock<TouchRegion?>) { self.region = region }
+    init(region: OSAllocatedUnfairLock<TouchRegion?>, closeWindow: @escaping @Sendable (UInt32) -> Void) {
+        self.region = region
+        self.closeWindow = closeWindow
+    }
 
     func start() -> Bool {
         let ready = DispatchSemaphore(value: 0)
@@ -119,15 +127,16 @@ private final class TapSession: @unchecked Sendable {
         guard let kind = TouchEvents.kind(of: type), !TouchEvents.isReplay(event), uu.sent(event) else { return pass }
 
         let input = TouchInput(kind, at: event.location, time: ProcessInfo.processInfo.systemUptime)
-        let response = translator.handle(input, in: region.withLock { $0 })
+        let region = region.withLock { $0 }
+        let response = translator.handle(input, in: region)
         if kind == .press, !response.passOriginal { heldPress = event.copy() }
-        response.commands.forEach { perform($0, current: event) }
+        response.commands.forEach { perform($0, current: event, region: region) }
         if kind == .release { heldPress = nil }
         if translator.isCoasting { startCoasting() }
         return response.passOriginal ? pass : nil
     }
 
-    private func perform(_ command: TouchCommand, current: CGEvent) {
+    private func perform(_ command: TouchCommand, current: CGEvent, region: TouchRegion?) {
         switch command {
         case .replayPress:
             TouchEvents.post(heldPress)
@@ -138,6 +147,26 @@ private final class TapSession: @unchecked Sendable {
             TouchEvents.rightClick(at: point).forEach(TouchEvents.post)
         case .scroll(let step):
             TouchEvents.post(TouchEvents.scroll(step))
+        case .closeWindow(let point):
+            // 按钮位置是铺好时读的：点下去这一刻再问一次窗口服务器（不经过 App，很快），对不上就照常点
+            if let button = region?.closeButton, button.isFrontmost(at: point, onScreen: Self.onScreen()) {
+                closeWindow(button.window)
+            } else {
+                Log.info("点在手机屏上窗口原来的关闭按钮处，但那里已经不是它的关闭按钮（挪走、被盖住或全屏了），照常点击")
+                perform(.replayPress, current: current, region: region)
+                perform(.replayCurrent, current: current, region: region)
+            }
+        }
+    }
+
+    /// 窗口服务器里此刻在屏上的窗口，从前到后
+    private static func onScreen() -> [(id: UInt32, frame: CGRect)] {
+        let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        return (list ?? []).compactMap { info in
+            guard let id = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
+                  let bounds = info[kCGWindowBounds as String] as? NSDictionary,
+                  let frame = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { return nil }
+            return (id, frame)
         }
     }
 

@@ -17,21 +17,34 @@ enum UUDump {
             print("UU远程 没有在运行")
             return 1
         }
-        guard let rows = UUAccessibility.rows(pid: pid) else {
-            print("表格：读不到（UU远程 没有窗口、没响应，或界面超出遍历上限）→ 控制端按手机处理")
+        guard let windows = UUAccessibility.windows(pid: pid) else {
+            print("界面：读不到（UU远程 没有窗口、没响应，或界面超出遍历上限）→ 控制端按手机处理")
             return 0
         }
-        // 打出所有表格行的文字：没认出控制端时，先看 UU 是不是停在别的页面
-        print("表格行：\(rows.count)")
-        for texts in rows { print("  \(texts.joined(separator: " | "))") }
-        guard case .shown(let names) = ControllerTable(rows: rows) else {
-            print("控制端：未识别（UU 只在被控页显示控制端：远程中出现这一行，多半是主窗口停在首页、错误页；上面确实是被控页的行，才是认不出 UU 的界面）→ 按手机处理")
+        // 打出界面树里的文字、表格和行：没认出控制端时，看 UU 停在哪一页
+        print("界面：")
+        for window in windows { printTree(window, depth: 1) }
+        guard case .shown(let names) = ControllerTable(windows: windows) else {
+            print("控制端：未识别（只认本机被控页里「本机被控中」那张表：远程中出现这一行，多半是 UU 停在首页、错误页、别的设备的详情页，或收起了被控页；"
+                + "上面确实有本机被控页和它的表，才是认不出 UU 的界面）→ 按手机处理")
             return 0
         }
         print("控制端：")
         for name in names { print("  \(name)：\(ControllerKind(name: name) == .computer ? "电脑" : "手机、平板或认不出")") }
         print(ControllerKind.wantsPhoneScreen(names) ? "→ 有一台不是电脑，加手机屏" : "→ 全是电脑，不加")
         return 0
+    }
+
+    /// 只打文字、表格和行，别的元素不占一层缩进
+    private static func printTree(_ element: UUElement, depth: Int) {
+        let label: String? = switch element.kind {
+        case .text(let text): text.isEmpty ? nil : "「\(text)」"
+        case .table: "表格"
+        case .row: "行"
+        case .other: nil
+        }
+        if let label { print(String(repeating: "  ", count: depth) + label) }
+        for child in element.children { printTree(child, depth: label == nil ? depth : depth + 1) }
     }
 
     private static func printDisplays() {

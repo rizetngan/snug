@@ -69,6 +69,10 @@ public final class AppService: AppControl {
         NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID).first?.processIdentifier
     }
 
+    public func pids(bundleID: String) async -> [Int32] {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).map(\.processIdentifier)
+    }
+
     public func open(_ app: AppInfo) async -> Int32? {
         guard let url = app.path.map(URL.init(fileURLWithPath:)) ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID)
         else { return nil }

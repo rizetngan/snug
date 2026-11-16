@@ -13,8 +13,10 @@ public protocol PhoneDisplays: AnyObject {
     func reshape(_ id: DisplayID, to fit: ScreenFit) async -> Bool
     /// 这块屏登记的是哪个比例的档位（建屏或换比例时登记的）；不是这里建的返回 nil。选档只能在它的档位里选
     func fit(_ id: DisplayID) -> ScreenFit?
-    /// 释放，等它下线
-    func retire(_ id: DisplayID) async
+    /// 释放，等一会儿它下线；返回下线了没有。显示器睡着（Mac 锁屏）时释放的虚拟屏要等唤醒才下线
+    func retire(_ id: DisplayID) async -> Bool
+    /// 这块屏还在不在线（撤掉的屏真下线了没有）
+    func isOnline(_ id: DisplayID) -> Bool
     /// 此刻是哪一档（2 倍模式的宽度，点）；不是 2 倍、或屏不在了返回 nil
     func width(_ id: DisplayID) -> Int?
     /// 换到这一档的 2 倍模式（高按这块屏现在的比例），等界面认到新尺寸再返回。换不成只记日志：窗口照样能用，只是没铺满
@@ -25,6 +27,10 @@ public protocol PhoneDisplays: AnyObject {
     func windowArea(_ id: DisplayID) -> CGRect?
     /// 主屏的可放区域（辅助功能坐标）：原位落在手机屏上的窗口（App 记得上次在手机屏上），原位改记成在这里居中
     func mainArea() -> CGRect?
+    /// 别的屏（手机屏以外的）此刻的样子。加屏、撤屏前记下：macOS 一换屏幕组合，就把别的屏拨回它给新组合记的模式
+    func otherDisplays() -> [OtherDisplay]
+    /// 把一块别的屏设回这个模式（交给帮手进程），permanently 时连永久配置一起写。设不成只记日志
+    func setMode(_ id: DisplayID, _ mode: ScreenMode, permanently: Bool) async
 }
 
 /// 窗口此刻的样子
@@ -69,6 +75,10 @@ public protocol WindowControl: Sendable {
     func askingWindow(of pid: Int32) async -> WindowInfo?
     /// 按窗口的关闭按钮（全屏的按了没反应，要先退出全屏）。找不到窗口或按钮返回 false
     func close(_ window: WindowKey) async -> Bool
+    /// 窗口关闭按钮的位置（全局坐标，左上原点）；没有关闭按钮、读不到返回 nil
+    func closeButton(_ window: WindowKey) async -> CGRect?
+    /// 这个进程此刻在屏上的普通窗口的位置：问窗口服务器，不经过 App，App 卡住、没有权限都不影响
+    func frames(of pid: Int32) async -> [WindowKey: CGRect]
     /// 当前桌面空间里普通窗口此刻的位置。加屏、撤屏前拍一张：macOS 会把窗口挪来挪去
     func snapshot() async -> [WindowKey: CGRect]
     /// 把位置变了的窗口放回快照里的位置（except 那个除外）
@@ -79,6 +89,8 @@ public protocol WindowControl: Sendable {
 public protocol AppControl: Sendable {
     /// 在跑就给进程号
     func pid(of app: AppInfo) async -> Int32?
+    /// 这个 App 在跑的所有进程（一般只有一个）。认留下的账的窗口回来没有时用：App 重启后进程号会换
+    func pids(bundleID: String) async -> [Int32]
     /// 没在跑就启动，在跑就「重新打开」（同点 Dock 图标，没窗口的 App 会开出窗口）。返回进程号，打不开返回 nil
     func open(_ app: AppInfo) async -> Int32?
     /// 按下菜单里的「新建窗口」（按标题认，见 NewWindowMenu；App 不在前台也行）；没有这一项、或 App 没响应返回 false

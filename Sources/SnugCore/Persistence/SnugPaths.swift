@@ -24,6 +24,8 @@ public struct SnugPaths: Equatable, Sendable {
     public var phoneRecord: URL { file("phone-screen.json") }
     /// 每个 App 在手机屏上记住的字号级数
     public var zoomBook: URL { file("zoom.json") }
+    /// 留下的账：在手机屏上被 Snug 之外关掉的窗口，等它回来时按账放回原位、缩回字号
+    public var leftBehind: URL { file("left-behind.json") }
 
     private func file(_ name: String) -> URL { dataDirectory.appendingPathComponent(name) }
 }
