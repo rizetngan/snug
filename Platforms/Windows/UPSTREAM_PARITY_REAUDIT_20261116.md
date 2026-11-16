@@ -29,6 +29,15 @@ Source history: `git rev-list --left-right --count origin/main...HEAD` = 0 behin
 - Chrome test: with isolated temporary profile on Windows VDD, normal injected mouse click on tab B failed in 0.2.19, but passed B then A in 0.2.21 after native browser-header input bypass. This is **not** a broad Edge/Electron/iPhone acceptance.
 - Windows has driver ownership marker and signed driver source checks; do not remove this security protection in the name of parity.
 
+## Direct visual comparison (2026-11-16)
+Evidence:
+- Original screenshot previously saved at `F:\snug for Windows\diagnostics\UPSTREAM_ORIGINAL_PHONE_LIBRARY.png` (historic original reference; not necessarily 2.4.4).
+- Current active Windows 0.2.21 phone VDD capture at `F:\snug for Windows\diagnostics\UPSTREAM_REAUDIT_WIN_0.2.21.png` (720x1223 DPI-virtualized).
+- Latest original layout source: `Sources/Snug/PhoneScreen/PhoneAppCard.swift`; Windows layout: `Platforms/Windows/src/Snug.Windows/PhoneSurfaceWindow.xaml`.
+
+P1 confirmed **UI composition regression**: Windows currently shows the '还原' action layered over the placed window row instead of in a distinct row below the window. In `PhoneSurfaceWindow.xaml`, the window row Grid has fixed Height=56 at ~line 194, and the extra placed-controls StackPanel begins at ~line 266 but is another child of the *same Grid* (closing tag ~line 305), without a separate grid row. This causes a visual overlap and may obscure the '在手机屏上' status badge. The original `PhoneAppCard.swift` uses a vertical VStack with PlacedControls below window rows. Refactor the Windows tree (separate row) and verify with real phone screenshot, not just core tests.
+
+Other visual notes: both screenshots have a similar App title, search, Running/All control and app cards; do not count historic screenshot differences as changes to official 2.4.4. The black bottom toolbar visible in the official reference is UU Remote's toolbar, not a Snug control.
 ## Recommended implementation order
 1. P0: Device classification / UU session correctness (mobile vs desktop, multi-controller and disconnect/reconnect), with unit and live UU tests.
 2. P0: Left-behind restoration and native-window close interception, including crash, closed/hidden/replaced window, zoom and stale HWND.
