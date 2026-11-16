@@ -842,7 +842,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _phoneSurface?.PlaceOn(found);
             _homeBar?.PlaceOn(found);
             _appBackBar?.PlaceOn(found);
-            _gestureHook.SetRegion(found.Bounds);
+            _gestureHook.SetRegion(found.Bounds, TouchScale());
             SyncGestures();
             RefreshDisplays();
             return true;
@@ -1292,7 +1292,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _activeModeWidth = new ScreenFit(CurrentDisplayChoice.Screen).BaseWidth;
         _placedModeWidth = _activeModeWidth;
         _showingPhoneList = true;
-        _gestureHook.SetRegion(display.Bounds);
+        _gestureHook.SetRegion(display.Bounds, TouchScale());
         SyncGestures();
     }
 
@@ -1335,6 +1335,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         ActivityStatus = $"{record.AppName} · 字号 {next:+#;-#;0} 级";
     }
 
+    private double TouchScale() => (double)Math.Max(1, _activeModeWidth)
+        / Math.Max(1, new ScreenFit(CurrentDisplayChoice.Screen).BaseWidth);
+
     private void SyncGestures()
     {
         if (!GesturesEnabled || _phoneDisplay is null || !_connection.IsConnected
@@ -1345,7 +1348,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             return;
         }
 
-        _gestureHook.SetRegion(_phoneDisplay.Bounds);
+        _gestureHook.SetRegion(_phoneDisplay.Bounds, TouchScale());
         if (!_gestureHook.IsRunning && !_gestureHook.Start())
             ActivityStatus = "手势监听启动失败";
     }

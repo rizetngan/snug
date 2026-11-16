@@ -37,14 +37,15 @@ public sealed class TouchTranslator
     private readonly ScrollWheel _wheel = new();
     private Momentum? _momentum;
     private bool _pressStoppedCoast;
+    private double _gestureScale = 1;
 
     public bool IsCoasting => _momentum is not null;
 
-    public TouchResponse Handle(TouchInput input, bool insidePhoneScreen)
+    public TouchResponse Handle(TouchInput input, bool insidePhoneScreen, double scale = 1)
     {
         return input.Kind switch
         {
-            PointerKind.Press => Press(input, insidePhoneScreen),
+            PointerKind.Press => Press(input, insidePhoneScreen, scale),
             PointerKind.Move => Move(input),
             PointerKind.Release => Release(input),
             _ => TouchResponse.Pass
@@ -62,7 +63,7 @@ public sealed class TouchTranslator
         return _wheel.Step(0, 0, ScrollPhase.None, MomentumPhase.Ended, _origin);
     }
 
-    private TouchResponse Press(TouchInput input, bool inside)
+    private TouchResponse Press(TouchInput input, bool inside, double scale)
     {
         var stop = StopMomentum();
         if (!inside)
@@ -72,6 +73,7 @@ public sealed class TouchTranslator
         }
 
         _pressStoppedCoast = stop.Count > 0;
+        _gestureScale = Math.Max(1, scale);
         _phase = GesturePhase.Pending;
         _pressedAt = input.TimeSeconds;
         _origin = _last = input.Location;
@@ -86,7 +88,7 @@ public sealed class TouchTranslator
         if (_phase is GesturePhase.Idle or GesturePhase.Selecting) return TouchResponse.Pass;
         if (_phase == GesturePhase.Pending)
         {
-            if (Distance(input.Location, _origin) < Slop) return TouchResponse.Swallow();
+            if (Distance(input.Location, _origin) < Slop * _gestureScale) return TouchResponse.Swallow();
             if (input.TimeSeconds - _pressedAt >= HoldDuration)
             {
                 _phase = GesturePhase.Selecting;

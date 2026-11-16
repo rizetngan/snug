@@ -15,6 +15,7 @@ public sealed class MouseGestureHook : IDisposable
     private readonly TouchTranslator _translator = new();
     private IntPtr _hook;
     private WindowBounds? _region;
+    private double _regionScale = 1;
     private PointD _heldPress;
     private bool _disposed;
 
@@ -30,7 +31,11 @@ public sealed class MouseGestureHook : IDisposable
 
     public bool IsRunning => _hook != IntPtr.Zero;
 
-    public void SetRegion(WindowBounds? region) => _region = region;
+    public void SetRegion(WindowBounds? region, double scale = 1)
+    {
+        _region = region;
+        _regionScale = Math.Max(1, scale);
+    }
 
     public bool Start()
     {
@@ -83,7 +88,7 @@ public sealed class MouseGestureHook : IDisposable
         var inside = point.X >= region.X && point.X < region.X + region.Width
             && point.Y >= region.Y && point.Y < region.Y + region.Height;
         var seconds = (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency;
-        var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside);
+        var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside, _regionScale);
 
         if (kind == PointerKind.Press && !response.PassOriginal) _heldPress = point;
         foreach (var command in response.Commands) Execute(command, kind.Value, point);
