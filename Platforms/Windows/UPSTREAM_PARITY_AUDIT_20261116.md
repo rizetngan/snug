@@ -70,3 +70,8 @@ New source changes: intended for 0.2.16, not considered installed until installe
 - Built installer F:\snug for Windows\artifacts\Snug-Setup-0.2.19-x64.exe, 55,622,776 bytes, SHA-256 2B5C8BF9C12FEB36E7BDE38C436DA2DA0B6D30DA70ABAEE6529DD34680016B76.
 - Install status DISTINCT from candidate test: Windows uninstall registry still says 0.2.18 installed; tested 0.2.19 via pinned .tools dotnet and Release verify-build DLL. An elevation request from a nonadmin remote session produced no new setup log. Do not claim the installer applied until it reports completion and the installed runtime DLL hash is checked.
 - Remaining gaps: real iPhone UU finger gestures/keyboard, Edge/Electron cross-process windows, long-run secondary taskbar stability. No upstream PR until full behavior parity acceptance.
+### 0.2.19 HomeBar 置顶恢复补测
+
+Using the 0.2.19 candidate runtime, opened an isolated Chrome window on the real phone VDD, confirmed HomeBar visible. A diagnostic Win32 call intentionally promoted Shell_SecondaryTrayWnd above HomeBar (GetWindow Z scan returned JUST_PROMOTED_TRAY_ABOVE=True). Without further intervention, the 500ms AppController watchdog restored the bar within three seconds (AFTER_THREE_SECONDS_BAR_ABOVE=True, WATCHDOG_REPAIR_PASS=True). The diagnostic cleanup required no manual raise. After the test, UIAutomation invoked the only bottom HomeBar button and then the isolated Chrome window's Restore action: both passed, Chrome remained alive and was returned to the host display.
+
+These checks validate the new WPF implementation on this Windows host, not touch input behavior inside the iPhone UU client. Installed registry version still needs elevation-backed upgrade from 0.2.18 to 0.2.19.
