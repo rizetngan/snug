@@ -171,7 +171,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public string WindowCountText => Windows.Count == 0 ? "暂无可用窗口" : $"{Windows.Count} 个窗口";
     public string InstalledAppCountText => $"{InstalledApps.Count} 个 App";
     public string RunningAppCountText => $"{RunningApps.Count} 个 App";
-    public string VersionText => "0.2.14 · Windows";
+    public string VersionText => "0.2.15 · Windows";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

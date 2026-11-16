@@ -26,6 +26,17 @@ public partial class PhoneSurfaceWindow : Window
     private bool _busy;
     private IntPtr _previousForeground;
 
+    // Upstream PhoneHomeView.Confirm: one inline confirmation at a time.
+    public static readonly DependencyProperty ActiveConfirmationProperty =
+        DependencyProperty.Register(nameof(ActiveConfirmation), typeof(string),
+            typeof(PhoneSurfaceWindow), new PropertyMetadata(null));
+
+    public string? ActiveConfirmation
+    {
+        get => (string?)GetValue(ActiveConfirmationProperty);
+        private set => SetValue(ActiveConfirmationProperty, value);
+    }
+
     public bool IsPreview { get; }
     public AppController Controller => _controller;
     public ObservableCollection<RunningApp> CurrentRunningApps { get; } = [];
@@ -44,7 +55,7 @@ public partial class PhoneSurfaceWindow : Window
         DataContext = this;
         Opacity = 0;
         CloseButton.Visibility = preview ? Visibility.Visible : Visibility.Collapsed;
-        DismissPhoneButton.Visibility = preview ? Visibility.Collapsed : Visibility.Visible;
+        DismissPhoneButton.Visibility = Visibility.Visible;
         PhoneModelPicker.ChoiceSelected += (_, choice) =>
         {
             HidePhoneModel();
@@ -184,13 +195,17 @@ public partial class PhoneSurfaceWindow : Window
 
     private void RunningTab_Click(object sender, RoutedEventArgs e)
     {
+        ClearConfirmation();
         _showAll = false;
+        HomeScroll.ScrollToTop();
         UpdateTabs();
     }
 
     private void AllTab_Click(object sender, RoutedEventArgs e)
     {
+        ClearConfirmation();
         _showAll = true;
+        HomeScroll.ScrollToTop();
         UpdateTabs();
     }
 
@@ -306,43 +321,58 @@ public partial class PhoneSurfaceWindow : Window
         _pendingClose = null;
         _pendingQuit = null;
         _pendingDismissScreen = false;
+        ActiveConfirmation = null;
+        DismissPhoneBanner.Visibility = Visibility.Collapsed;
         ConfirmationOverlay.Visibility = Visibility.Collapsed;
     }
 
     private void ShowQuitConfirmation(RunningApp app)
     {
-        _pendingClose = null;
-        _pendingDismissScreen = false;
-        ConfirmDescription.Text = "关闭或退出可能有未保存内容，应用可能要求先保存。";
+        ClearConfirmation();
         _pendingQuit = app;
-        ConfirmTitle.Text = $"退出 {app.App.Name}？";
-        ConfirmActionButton.Content = "退出";
-        ConfirmationOverlay.Visibility = Visibility.Visible;
+        ActiveConfirmation = "quit:" + app.ProcessId;
     }
 
     private void ShowCloseConfirmation(WindowInfo window)
     {
-        _pendingQuit = null;
-        _pendingDismissScreen = false;
-        ConfirmDescription.Text = "关闭或退出可能有未保存内容，应用可能要求先保存。";
+        ClearConfirmation();
         _pendingClose = window;
-        ConfirmTitle.Text = $"关闭「{window.Title}」？";
-        ConfirmActionButton.Content = "关闭";
-        ConfirmationOverlay.Visibility = Visibility.Visible;
+        ActiveConfirmation = "close:" + window.Key.ProcessId + ":" + window.Key.Handle;
     }
 
     private void DismissPhone_Click(object sender, RoutedEventArgs e)
     {
-        if (IsPreview) { Close(); return; }
         ClearConfirmation();
         _pendingDismissScreen = true;
-        ConfirmTitle.Text = "退出手机屏？";
-        ConfirmDescription.Text = "窗口会回到原位置；本次远程不会再创建手机屏，下次远程连接时恢复。";
-        ConfirmActionButton.Content = "退出手机屏";
-        ConfirmationOverlay.Visibility = Visibility.Visible;
+        DismissPhoneBanner.Visibility = Visibility.Visible;
+        HomeScroll.ScrollToTop();
     }
 
     private void CancelConfirm_Click(object sender, RoutedEventArgs e) => ClearConfirmation();
+
+    private async void ConfirmQuitInline_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not RunningApp app ||
+            ActiveConfirmation != "quit:" + app.ProcessId) return;
+        ClearConfirmation();
+        await WithBusyAsync($"正在退出 {app.App.Name}", () => _controller.QuitAppAsync(app, IsPreview));
+    }
+
+    private async void ConfirmCloseInline_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not WindowInfo window ||
+            ActiveConfirmation != "close:" + window.Key.ProcessId + ":" + window.Key.Handle) return;
+        ClearConfirmation();
+        await WithBusyAsync($"正在关闭 {window.Title}", () => _controller.CloseWindowAsync(window, IsPreview));
+    }
+
+    private async void ConfirmDismissInline_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_pendingDismissScreen) return;
+        ClearConfirmation();
+        if (IsPreview) { Close(); return; }
+        await WithBusyAsync("正在退出手机屏", _controller.DismissPhoneForEpisodeAsync);
+    }
 
     private async void ConfirmAction_Click(object sender, RoutedEventArgs e)
     {
@@ -429,5 +459,21 @@ public partial class PhoneSurfaceWindow : Window
         await WithBusyAsync("正在返回 App", _controller.ReturnToPlacedAsync);
     }
 
+    private void ZoomOutPlaced_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsPreview) _controller.AdjustCurrentAppZoom(-1);
+    }
+
+    private void ZoomInPlaced_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsPreview) _controller.AdjustCurrentAppZoom(1);
+    }
+
+    private async void RestorePlaced_Click(object sender, RoutedEventArgs e)
+    {
+        ClearConfirmation();
+        if (!IsPreview)
+            await WithBusyAsync("正在还原窗口", _controller.PutBackAsync);
+    }
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 }

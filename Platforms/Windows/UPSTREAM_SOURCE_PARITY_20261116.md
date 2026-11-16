@@ -27,3 +27,28 @@ Reviewed source commit: c9f46d94ed3f6d46b1132f07f3df9e2bdb969fb5
 - Native raw-mode validation in place of physical-vs-logical rectangle comparisons.
 - Core 121/121 pass, Release 0 errors and 0 warnings; preview UI flow pass.
 - Unresolved: actual iPhone UU exclusively capturing display 2, real touch/gesture parity, automatic on-line shape changes, all upstream window behaviors. Do not mark these complete based on WPF preview alone.
+
+## 0.2.15 — UI fidelity aligned to the upstream SwiftUI source
+
+Compared source against the upstream GitHub README live phone screenshot and:
+- Sources/Snug/PhoneScreen/PhoneHomeView.swift
+- Sources/Snug/PhoneScreen/PhoneAppCard.swift
+- Sources/Snug/PhoneScreen/PhoneWidgets.swift
+- Sources/Snug/PhoneScreen/PhoneScreenWindows.swift
+- Sources/SnugCore/PhoneScreen/ScreenFit.swift
+
+Adapted running app card to the upstream 48pt icons, 56pt round action targets,
+native-like macwindow badge/close glyphs, 18/22pt labels and white grouped cards.
+Moved app quit and window close confirmation from a blocking global modal into the
+selected card/row, with mutually exclusive inline state and explicit cancellation.
+Phone-display dismissal now confirms in the header, as upstream PhoneHomeView does,
+instead of masking the entire screen. Debug preview exercises dismissal/cancellation
+without modifying the actual display. Text color and contrast verified by screenshots.
+WPF UI automation smoke covers home, all apps, search, inline confirmation,
+inline dismiss, model selection and return. Core 121/121 PASS.
+
+Phone geometry remains ScreenFit-derived for iPhone 13 Pro:
+1170x2532px, 390pt logical width -> ratio 1.6974 -> 540x917pt -> 1080x1834px.
+The 91pt UU inset on each side is intentional upstream behavior, not WPF padding.
+Actual UU remote-injected touches and on-device window placement still require
+independent real-device testing; UI fidelity is not the same as full PhoneDesk parity.

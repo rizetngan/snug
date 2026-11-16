@@ -6,6 +6,8 @@
         ShowActivated="False" Topmost="True" Background="#F2F2F7"
         Foreground="#17171A" FontFamily="Segoe UI">
     <Window.Resources>
+        <local:PhoneConfirmationVisibilityConverter x:Key="ConfirmationVisibility"/>
+        <local:PhonePlacedVisibilityConverter x:Key="PlacedWindowVisibility"/>
         <SolidColorBrush x:Key="PhoneBackground" Color="#F2F2F7"/>
         <SolidColorBrush x:Key="PhoneCard" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="PhoneFill" Color="#E4E4E9"/>
@@ -47,19 +49,58 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Upstream PhoneWidgets.RoundButton: 56-point circular hit target. -->
         <Style x:Key="RoundAction" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="Width" Value="48"/>
-            <Setter Property="Height" Value="48"/>
+            <Setter Property="Width" Value="56"/>
+            <Setter Property="Height" Value="56"/>
             <Setter Property="Background" Value="{StaticResource PhoneBackground}"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="28">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.6"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Upstream PhoneWidgets.PillButton: inline cancel/destructive affordances. -->
+        <Style x:Key="InlineCancel" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Foreground" Value="{StaticResource PhoneInk}"/>
+            <Setter Property="MinWidth" Value="66"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Background" Value="{StaticResource PhoneBackground}"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="22"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="InlineDestructive" TargetType="Button" BasedOn="{StaticResource InlineCancel}">
+            <Setter Property="Background" Value="#E33B43"/>
+            <Setter Property="Foreground" Value="White"/>
         </Style>
         <Style x:Key="SearchField" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource PhoneFill}"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Height" Value="54"/>
         </Style>
+        <!-- Direct Windows rendering of upstream PhoneAppCard + PhoneWidgets: inline
+             one-at-a-time confirmation, round icons, 56pt touch targets. -->
         <DataTemplate x:Key="RunningAppCard">
             <DataTemplate.Resources>
                 <Style TargetType="TextBlock">
@@ -67,13 +108,13 @@
                     <Setter Property="FontFamily" Value="Segoe UI"/>
                     <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
                 </Style>
-            </DataTemplate.Resources>            <Border Background="{StaticResource PhoneCard}" CornerRadius="14" Margin="0,0,0,12">
+            </DataTemplate.Resources>
+            <Border Background="{StaticResource PhoneCard}" CornerRadius="12" Margin="0,0,0,12">
                 <StackPanel>
-                    <Grid Margin="14,12,12,12">
+                    <Grid Margin="16,12,12,12" Height="56">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="56"/>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Tag="{Binding App}" Click="OpenApp_Click"
                                 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
@@ -82,52 +123,185 @@
                                     <ColumnDefinition Width="48"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Grid Grid.Column="0" Width="48" Height="48">
+                                <Grid Width="48" Height="48">
                                     <Border CornerRadius="12" Background="{StaticResource PhoneFill}"/>
-                                    <TextBlock Foreground="{StaticResource PhoneInk}" Text="{Binding App.Name, Converter={StaticResource FirstLetterConverter}}"
-                                               FontWeight="SemiBold" FontSize="20" TextAlignment="Center"
-                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding App.Name, Converter={StaticResource FirstLetterConverter}}"
+                                               FontWeight="SemiBold" FontSize="20" TextAlignment="Center" VerticalAlignment="Center"/>
                                     <Image Source="{Binding App, Converter={StaticResource AppIconConverter}}"
                                            Stretch="Uniform" Width="48" Height="48"/>
                                 </Grid>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,6,0">
-                                    <TextBlock Text="{Binding App.Name}" FontSize="22" Foreground="{StaticResource PhoneInk}"
-                                               FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,8,0">
+                                    <TextBlock Text="{Binding App.Name}" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource PhoneInk}"/>
                                     <TextBlock Text="{Binding WindowSummary}" Foreground="{StaticResource PhoneSecondary}"
-                                               FontSize="16" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                               FontSize="18" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </Grid>
                         </Button>
-                        <Button Grid.Column="1" Style="{StaticResource RoundAction}" Tag="{Binding App}"
-                                Click="NewWindow_Click"  Foreground="{StaticResource PhoneInk}" ToolTip="新建窗口"
-                                AutomationProperties.Name="新建窗口"><TextBlock Text="＋" Foreground="{StaticResource PhoneInk}" /></Button>
-                        <Button Grid.Column="2" Style="{StaticResource RoundAction}" Tag="{Binding}"
-                                Click="QuitApp_Click"  Foreground="{StaticResource PhoneInk}" ToolTip="退出 App"
-                                AutomationProperties.Name="退出 App"><TextBlock Text="×" Foreground="{StaticResource PhoneInk}" /></Button>
+                        <Grid Grid.Column="1">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <StackPanel.Visibility>
+                                    <MultiBinding Converter="{StaticResource ConfirmationVisibility}" ConverterParameter="normal">
+                                        <Binding/>
+                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="ActiveConfirmation"/>
+                                    </MultiBinding>
+                                </StackPanel.Visibility>
+                                <Button Style="{StaticResource RoundAction}" Tag="{Binding App}"
+                                        Click="NewWindow_Click" ToolTip="新建窗口"
+                                        AutomationProperties.Name="新建窗口" Margin="0,0,8,0">
+                                    <Canvas Width="28" Height="28">
+                                        <Rectangle Canvas.Left="5" Canvas.Top="3" Width="20" Height="17"
+                                                   RadiusX="3" RadiusY="3" Stroke="{StaticResource PhoneInk}" StrokeThickness="2.3"/>
+                                        <Line X1="5" Y1="8" X2="25" Y2="8" Stroke="{StaticResource PhoneInk}" StrokeThickness="2"/>
+                                        <Ellipse Canvas.Left="0" Canvas.Top="14" Width="14" Height="14"
+                                                 Fill="{StaticResource PhoneBackground}"/>
+                                        <Path Data="M 7,16 L 7,26 M 2,21 L 12,21"
+                                              Stroke="{StaticResource PhoneInk}" StrokeThickness="2.5"
+                                              StrokeStartLineCap="Round"/>
+                                    </Canvas>
+                                </Button>
+                                <Button Style="{StaticResource RoundAction}" Tag="{Binding}"
+                                        Click="QuitApp_Click" ToolTip="退出 App"
+                                        AutomationProperties.Name="退出 App">
+                                    <Canvas Width="26" Height="26">
+                                        <Rectangle Canvas.Left="2" Canvas.Top="2" Width="22" Height="22"
+                                                   RadiusX="5" RadiusY="5" Stroke="{StaticResource PhoneInk}"
+                                                   StrokeThickness="2.3"/>
+                                        <Path Data="M 9,9 L 17,17 M 17,9 L 9,17"
+                                              Stroke="{StaticResource PhoneInk}" StrokeThickness="2.5"
+                                              StrokeStartLineCap="Round"/>
+                                    </Canvas>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <StackPanel.Visibility>
+                                    <MultiBinding Converter="{StaticResource ConfirmationVisibility}">
+                                        <Binding/>
+                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="ActiveConfirmation"/>
+                                    </MultiBinding>
+                                </StackPanel.Visibility>
+                                <Button Click="CancelConfirm_Click" Style="{StaticResource InlineCancel}" Margin="0,0,8,0"
+                                        AutomationProperties.Name="取消退出"><TextBlock Text="取消" Foreground="#17171A" FontWeight="Medium"/></Button>
+                                <Button Click="ConfirmQuitInline_Click" Tag="{Binding}" Content="退出"
+                                        Style="{StaticResource InlineDestructive}" AutomationProperties.Name="确认退出"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                     <ItemsControl ItemsSource="{Binding Windows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel>
                                     <Border Height="1" Background="{StaticResource PhoneDivider}" Margin="80,0,0,0"/>
-                                    <Grid Margin="15,3,12,3" MinHeight="56">
+                                    <Grid Margin="16,0,12,0" Height="56">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="56"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <Button Grid.Column="0" Tag="{Binding}" Click="OpenWindow_Click"
                                                 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="▣" FontSize="22" Width="48"
-                                                           TextAlignment="Center" Foreground="{StaticResource PhoneSecondary}"/>
-                                                <TextBlock Foreground="{StaticResource PhoneInk}" Text="{Binding Title}" FontSize="17" Margin="16,0,4,0"
-                                                           VerticalAlignment="Center" MaxWidth="300"
-                                                           TextTrimming="CharacterEllipsis"/>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="48"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Canvas Grid.Column="0" Width="28" Height="26" HorizontalAlignment="Center">
+                                                    <Rectangle Canvas.Left="2" Canvas.Top="5" Width="24" Height="18"
+                                                               RadiusX="3" RadiusY="3"
+                                                               Stroke="{StaticResource PhoneSecondary}" StrokeThickness="2"/>
+                                                    <Path Data="M 2,11 L 26,11" Stroke="{StaticResource PhoneSecondary}" StrokeThickness="1.5"/>
+                                                    <Ellipse Canvas.Left="5" Canvas.Top="7" Width="2.5" Height="2.5" Fill="{StaticResource PhoneSecondary}"/>
+                                                    <Ellipse Canvas.Left="10" Canvas.Top="7" Width="2.5" Height="2.5" Fill="{StaticResource PhoneSecondary}"/>
+                                                </Canvas>
+                                                <Grid Grid.Column="1" Margin="16,0,8,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Title}" Foreground="{StaticResource PhoneInk}"
+                                                               FontSize="18" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <Border Grid.Column="1" Margin="8,0,0,0" Padding="8,3"
+                                                            VerticalAlignment="Center" Background="#E1EFFD" CornerRadius="12">
+                                                        <Border.Visibility>
+                                                            <MultiBinding Converter="{StaticResource PlacedWindowVisibility}">
+                                                                <Binding/>
+                                                                <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="Controller.PlacedWindowKey"/>
+                                                            </MultiBinding>
+                                                        </Border.Visibility>
+                                                        <TextBlock Text="在手机屏上" FontSize="15" FontWeight="Medium"
+                                                                   Foreground="{StaticResource PhoneTint}"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Grid>
+                                        </Button>
+                                        <Grid Grid.Column="1">
+                                            <Button Style="{StaticResource RoundAction}" Tag="{Binding}"
+                                                    Click="CloseWindow_Click" ToolTip="关闭窗口"
+                                                    AutomationProperties.Name="关闭窗口">
+                                                <Button.Visibility>
+                                                    <MultiBinding Converter="{StaticResource ConfirmationVisibility}" ConverterParameter="normal">
+                                                        <Binding/>
+                                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="ActiveConfirmation"/>
+                                                    </MultiBinding>
+                                                </Button.Visibility>
+                                                <Canvas Width="28" Height="28">
+                                                    <Ellipse Canvas.Left="2" Canvas.Top="2" Width="24" Height="24"
+                                                             Fill="#B8B8BE"/>
+                                                    <Path Data="M 10,10 L 18,18 M 18,10 L 10,18"
+                                                          Stroke="White" StrokeThickness="2.5" StrokeStartLineCap="Round"/>
+                                                </Canvas>
+                                            </Button>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <StackPanel.Visibility>
+                                                    <MultiBinding Converter="{StaticResource ConfirmationVisibility}">
+                                                        <Binding/>
+                                                        <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="ActiveConfirmation"/>
+                                                    </MultiBinding>
+                                                </StackPanel.Visibility>
+                                                <Button Click="CancelConfirm_Click" Style="{StaticResource InlineCancel}"
+                                                        Margin="0,0,8,0" AutomationProperties.Name="取消关闭"><TextBlock Text="取消" Foreground="#17171A" FontWeight="Medium"/></Button>
+                                                <Button Click="ConfirmCloseInline_Click" Tag="{Binding}" Content="关闭"
+                                                        Style="{StaticResource InlineDestructive}"
+                                                        AutomationProperties.Name="确认关闭"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                                Margin="80,0,12,10">
+                                        <StackPanel.Visibility>
+                                            <MultiBinding Converter="{StaticResource PlacedWindowVisibility}">
+                                                <Binding/>
+                                                <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="Controller.PlacedWindowKey"/>
+                                            </MultiBinding>
+                                        </StackPanel.Visibility>
+                                        <Button Style="{StaticResource RoundAction}" Click="ZoomOutPlaced_Click"
+                                                ToolTip="缩小字号" AutomationProperties.Name="缩小字号"
+                                                Margin="0,0,8,0">
+                                            <Button.Visibility>
+                                                <MultiBinding Converter="{StaticResource PlacedWindowVisibility}" ConverterParameter="zoom">
+                                                    <Binding/>
+                                                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="Controller.PlacedWindowKey"/>
+                                                </MultiBinding>
+                                            </Button.Visibility>
+                                            <TextBlock Text="A−" Foreground="{StaticResource PhoneInk}" FontSize="20"/>
+                                        </Button>
+                                        <Button Style="{StaticResource RoundAction}" Click="ZoomInPlaced_Click"
+                                                ToolTip="放大字号" AutomationProperties.Name="放大字号"
+                                                Margin="0,0,12,0">
+                                            <Button.Visibility>
+                                                <MultiBinding Converter="{StaticResource PlacedWindowVisibility}" ConverterParameter="zoom">
+                                                    <Binding/>
+                                                    <Binding RelativeSource="{RelativeSource AncestorType={x:Type local:PhoneSurfaceWindow}}" Path="Controller.PlacedWindowKey"/>
+                                                </MultiBinding>
+                                            </Button.Visibility>
+                                            <TextBlock Text="A+" Foreground="{StaticResource PhoneInk}" FontSize="20"/>
+                                        </Button>
+                                        <Button Style="{StaticResource InlineCancel}" Click="RestorePlaced_Click"
+                                                ToolTip="还原窗口" AutomationProperties.Name="还原窗口"
+                                                Padding="20,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="↶" FontSize="24" Margin="0,0,8,0" Foreground="{StaticResource PhoneInk}"/>
+                                                <TextBlock Text="还原" FontSize="18" VerticalAlignment="Center" Foreground="{StaticResource PhoneInk}"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Grid.Column="1" Tag="{Binding}" Style="{StaticResource RoundAction}"
-                                                Click="CloseWindow_Click"  Foreground="{StaticResource PhoneInk}" FontSize="22"
-                                                ToolTip="关闭窗口" AutomationProperties.Name="关闭窗口"><TextBlock Text="×" Foreground="{StaticResource PhoneInk}" /></Button>
+                                    </StackPanel>
                                     </Grid>
                                 </StackPanel>
                             </DataTemplate>
@@ -248,7 +422,7 @@
             </Grid>
 
             <Grid Grid.Row="1">
-                <ScrollViewer x:Name="HomeScroll" VerticalScrollBarVisibility="Hidden"
+                <ScrollViewer x:Name="HomeScroll" AutomationProperties.Name="App 列表" VerticalScrollBarVisibility="Hidden"
                               HorizontalScrollBarVisibility="Disabled" ScrollChanged="HomeScroll_ScrollChanged">
                     <StackPanel>
                         <StackPanel x:Name="HomeHeader" Margin="20,4,20,0">
@@ -267,6 +441,32 @@
                                     Background="#FFF4DD" CornerRadius="12" Padding="12" Margin="0,12,0,0">
                                 <TextBlock x:Name="NoticeText" FontSize="16" Foreground="#805000"
                                            TextWrapping="Wrap" TextTrimming="None"/>
+                            </Border>
+                            <!-- Upstream PhoneHomeView places this confirmation in the header. -->
+                            <Border x:Name="DismissPhoneBanner" Visibility="Collapsed"
+                                    Background="{StaticResource PhoneCard}" CornerRadius="12"
+                                    Padding="16" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="↪" FontSize="24" Foreground="#E33B43"
+                                                   VerticalAlignment="Top" Margin="0,0,12,0"/>
+                                        <StackPanel>
+                                            <TextBlock Text="退出手机屏？" FontSize="18"
+                                                       FontWeight="SemiBold" TextTrimming="None"/>
+                                            <TextBlock Text="窗口还原，下次远程时恢复" FontSize="16"
+                                                       Foreground="{StaticResource PhoneSecondary}"
+                                                       Margin="0,4,0,0" TextTrimming="None"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                                        <Button Style="{StaticResource InlineCancel}"
+                                                Click="CancelConfirm_Click" Margin="0,0,12,0"
+                                                AutomationProperties.Name="取消退出手机屏"><TextBlock Text="取消" Foreground="#17171A" FontWeight="Medium"/></Button>
+                                        <Button Style="{StaticResource InlineDestructive}" Content="退出"
+                                                Click="ConfirmDismissInline_Click"
+                                                AutomationProperties.Name="确认退出手机屏"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </Border>
                         </StackPanel>
 

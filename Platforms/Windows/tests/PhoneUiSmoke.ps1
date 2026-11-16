@@ -47,8 +47,23 @@ try {
         if ($null -eq $element) { throw "Missing UI element: $name" }
         return $element
     }
+    function Find-VisibleAction([string]$name) {
+        $match = [System.Windows.Automation.AndCondition]::new(
+            [System.Windows.Automation.PropertyCondition]::new(
+                [System.Windows.Automation.AutomationElement]::NameProperty, $name),
+            [System.Windows.Automation.PropertyCondition]::new(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Button))
+        $items = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, $match)
+        for ($i = 0; $i -lt $items.Count; $i++) {
+            $candidate = $items.Item($i)
+            if (-not $candidate.Current.IsOffscreen) { return $candidate }
+        }
+        return $null
+    }
     function Press([string]$name) {
-        $element = Require-Control $name
+        $element = Find-VisibleAction $name
+        if (-not $element) { throw "Visible button not found: $name" }
         $element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
         Start-Sleep -Milliseconds 200
     }
@@ -113,14 +128,29 @@ try {
     Press '取消搜索'
 
     Press '运行中'
-    $quit = Find-Control '退出 App'
+    # The first visible app card must stay fully visible for inline confirmation.
+    $scroller = Require-Control 'App 列表'
+    $scrollPattern = $null
+    if ($scroller.TryGetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern, [ref]$scrollPattern)) {
+        $scrollPattern.SetScrollPercent([System.Windows.Automation.ScrollPattern]::NoScroll, 0)
+        Start-Sleep -Milliseconds 300
+    }
+    $quit = Find-VisibleAction '退出 App'
     if ($null -ne $quit) {
         $quit.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
         Start-Sleep -Milliseconds 300
-        [void](Require-Control '取消')
+        [void](Find-VisibleAction '确认退出')
         Capture-Phone 'confirmation'
-        Press '取消'
+        Press '取消退出'
     }
+
+    Press '退出手机屏'
+    [void](Require-Control '退出手机屏？')
+    if (-not (Find-VisibleAction '确认退出手机屏')) {
+        throw 'Upstream inline phone-dismissal confirmation is missing.'
+    }
+    Capture-Phone 'dismiss'
+    Press '取消退出手机屏'
 
     Press '手机型号'
     $picker = Require-Control '搜索手机型号'
