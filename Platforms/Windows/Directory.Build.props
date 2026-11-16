@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <SnugUseLegacyWindowsCETWorkaround Condition="'$(SnugUseLegacyWindowsCETWorkaround)' == ''">true</SnugUseLegacyWindowsCETWorkaround>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(SnugUseLegacyWindowsCETWorkaround)' == 'true'">
+    <!-- Run the SDK 10 Roslyn DLL through dotnet.exe, not its CET-marked csc.exe apphost. -->
+    <CscToolPath>$(MSBuildThisFileDirectory).tools\csc-bridge</CscToolPath>
+    <CscToolExe>Snug.CscBridge.exe</CscToolExe>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <LangVersion>14.0</LangVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(SnugUseLegacyWindowsCETWorkaround)' == 'true' and '$(MSBuildProjectName)' == 'Snug.Windows.Core.Tests'">
+    <CETCompat>false</CETCompat>
+  </PropertyGroup>
+</Project>

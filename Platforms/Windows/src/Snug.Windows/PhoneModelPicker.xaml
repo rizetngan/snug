@@ -1,0 +1,214 @@
+<UserControl x:Class="Snug.Windows.PhoneModelPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#F2F2F7" Foreground="#17171A" FontFamily="Segoe UI"
+             MinWidth="360">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="Ink" Color="#17171A"/>
+        <SolidColorBrush x:Key="Secondary" Color="#73737C"/>
+        <SolidColorBrush x:Key="Tint" Color="#007AFF"/>
+        <SolidColorBrush x:Key="Fill" Color="#E4E4E9"/>
+        <SolidColorBrush x:Key="Card" Color="White"/>
+        <Style TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}" CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.86"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Grid Background="#F2F2F7">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="72"/>
+            <RowDefinition Height="76"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="20,12,20,4">
+            <TextBlock Text="手机型号" FontSize="22" FontWeight="SemiBold"
+                       Foreground="{StaticResource Ink}" VerticalAlignment="Center"
+                       HorizontalAlignment="Center"/>
+            <Button HorizontalAlignment="Right" Width="64" Height="56" Click="Done_Click"
+                    AutomationProperties.Name="返回 App">
+                <TextBlock Text="完成" Foreground="{StaticResource Tint}" FontSize="18"
+                           FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </Button>
+        </Grid>
+
+        <Border Grid.Row="1" Height="54" Margin="20,8,20,14"
+                CornerRadius="12" Background="{StaticResource Fill}">
+            <Grid Margin="14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="34"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="⌕" FontSize="26" VerticalAlignment="Center"
+                           Foreground="{StaticResource Secondary}"/>
+                <TextBox x:Name="SearchBox" Grid.Column="1" TextChanged="Search_TextChanged"
+                         BorderThickness="0" Background="Transparent"
+                         Foreground="{StaticResource Ink}" CaretBrush="{StaticResource Tint}"
+                         VerticalContentAlignment="Center" FontSize="18"
+                         AutomationProperties.Name="搜索手机型号"/>
+                <Button Grid.Column="2" Click="ClearSearch_Click" AutomationProperties.Name="清除型号搜索">
+                    <TextBlock Text="×" FontSize="24" Foreground="{StaticResource Secondary}"/>
+                </Button>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="2" Margin="20,0,20,0">
+            <StackPanel x:Name="CurrentSection" Margin="0,0,0,18">
+                <TextBlock Text="当前" FontSize="15" Foreground="{StaticResource Secondary}"
+                           Margin="4,0,0,8"/>
+                <Border CornerRadius="14" Background="{StaticResource Card}" Padding="16">
+                    <StackPanel Orientation="Horizontal">
+                        <Grid Width="48" Height="48" Margin="0,0,16,0">
+                            <Border BorderBrush="{StaticResource Tint}" BorderThickness="2.6"
+                                    Width="24" Height="34" CornerRadius="5"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="CurrentTitle" FontSize="21" FontWeight="SemiBold"
+                                       Foreground="{StaticResource Ink}" MaxWidth="390"/>
+                            <TextBlock x:Name="CurrentDimensions" FontSize="17"
+                                       Foreground="{StaticResource Secondary}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            <StackPanel x:Name="CustomSection" Margin="0,0,0,18">
+                <TextBlock Text="自定义" Foreground="{StaticResource Secondary}"
+                           FontSize="15" Margin="4,0,0,8"/>
+                <Border Background="{StaticResource Card}" CornerRadius="14" Padding="16">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="32"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="86"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="CustomWidth" Grid.Column="0" Height="48" TextChanged="Custom_TextChanged"
+                                     BorderThickness="0" Background="{StaticResource Fill}"
+                                     Foreground="{StaticResource Ink}" FontSize="18"
+                                     HorizontalContentAlignment="Center"
+                                     VerticalContentAlignment="Center"
+                                     AutomationProperties.Name="自定义宽度"/>
+                            <TextBlock Grid.Column="1" Text="×" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" FontSize="18"
+                                       Foreground="{StaticResource Secondary}"/>
+                            <TextBox x:Name="CustomHeight" Grid.Column="2" Height="48" TextChanged="Custom_TextChanged"
+                                     BorderThickness="0" Background="{StaticResource Fill}"
+                                     Foreground="{StaticResource Ink}" FontSize="18"
+                                     HorizontalContentAlignment="Center"
+                                     VerticalContentAlignment="Center"
+                                     AutomationProperties.Name="自定义高度"/>
+                            <Button x:Name="UseCustomButton" Grid.Column="3" Height="48" Margin="12,0,0,0"
+                                    Background="#E4E4E9" Click="UseCustom_Click" ToolTip="使用自定义分辨率">
+                                <TextBlock Text="使用" FontSize="17" Foreground="{StaticResource Tint}"/>
+                            </Button>
+                        </Grid>
+                        <TextBlock Text="支持横屏输入，应用时自动按竖屏比例处理。"
+                                   Foreground="{StaticResource Secondary}" FontSize="14"
+                                   Margin="0,10,0,0"/>
+                        <TextBlock x:Name="CustomError" Foreground="#C23434" FontSize="14"
+                                   Visibility="Collapsed" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+
+        <Grid Grid.Row="3" Margin="20,0,20,0">
+            <ListBox x:Name="ModelsList" ItemsSource="{Binding FilteredEntries}"
+                     Background="Transparent" BorderThickness="0"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                     ScrollViewer.CanContentScroll="True"
+                     HorizontalContentAlignment="Stretch">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Focusable" Value="False"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter Content="{TemplateBinding Content}"
+                                                      ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <TextBlock x:Name="BrandHeader" Text="{Binding BrandName}"
+                                       Foreground="{StaticResource Secondary}" FontSize="15"
+                                       Margin="4,14,0,8" Visibility="Collapsed"/>
+                            <Button x:Name="ModelRow" Click="SelectModel_Click"
+                                    Tag="{Binding Model}" HorizontalContentAlignment="Stretch"
+                                    Background="{StaticResource Card}" MinHeight="68">
+                                <Grid Margin="20,10,20,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="42"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="18"
+                                                   Foreground="{StaticResource Ink}"/>
+                                        <TextBlock Text="{Binding DisplaySize}" FontSize="15"
+                                                   Foreground="{StaticResource Secondary}" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding Checkmark}" FontSize="22"
+                                               Foreground="{StaticResource Tint}" FontWeight="SemiBold"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                <Setter TargetName="BrandHeader" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="ModelRow" Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock x:Name="NoResults" Text="没有找到匹配型号"
+                       Foreground="{StaticResource Secondary}" FontSize="18"
+                       HorizontalAlignment="Center" VerticalAlignment="Top"
+                       Margin="0,48,0,0" Visibility="Collapsed"/>
+        </Grid>
+    </Grid>
+</UserControl>

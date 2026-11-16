@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseAppHost Condition="'$(SnugUseLegacyWindowsCETWorkaround)' == 'true'">false</UseAppHost>
+    <UseAppHost Condition="'$(SnugUseLegacyWindowsCETWorkaround)' != 'true'">true</UseAppHost>
+    <CETCompat>true</CETCompat>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Snug.Windows</AssemblyName>
+    <RootNamespace>Snug.Windows</RootNamespace>
+    <Version>0.2.14</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Snug.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Snug.Windows.Core\Snug.Windows.Core.csproj" />
+    <Content Include="Snug.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\payload\Driver\Install-SnugDriver.ps1" Link="Driver\Install-SnugDriver.ps1" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\payload\Driver\snug_vdd_settings.xml" Link="Driver\snug_vdd_settings.xml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\payload\Driver\snug_user_edid.bin" Link="Driver\snug_user_edid.bin" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\payload\Driver\VDD\VirtualDisplayDriver-x86.Driver.Only.zip" Link="Driver\VDD\VirtualDisplayDriver-x86.Driver.Only.zip" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\payload\Driver\Tools\nefcon_v1.21.1.zip" Link="Driver\Tools\nefcon_v1.21.1.zip" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\installer\THIRD_PARTY_NOTICES.md" Link="Driver\THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\..\..\Assets\phone-models.json" Link="Assets\phone-models.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

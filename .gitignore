@@ -17,5 +17,12 @@ dist/
 # scripts/snug 传国内源用的 Python 环境（依赖见 scripts/cos-requirements.txt）
 .venv/
 
-# 演示录制的工作区（原始录像、抽帧分析、录制脚本、内容生产说明），只留本机，绝不提交
+# Demo recording workspace (upstream)
 /footage/
+
+# Windows platform build outputs
+**/bin/
+**/obj/
+**/.tools/
+**/TestResults/
+artifacts/
