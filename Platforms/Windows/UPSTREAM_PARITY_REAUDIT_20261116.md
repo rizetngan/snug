@@ -59,3 +59,11 @@ Other visual notes: both screenshots have a similar App title, search, Running/A
 - `AppController.VersionText` now derives from the running assembly; settings-preview UIAutomation reported **0.2.22**.
 - Core tests 136/136, Release build 0 errors and 0 warnings.
 - Pending still: real iPhone + UU finger verification, session controller classification, left-behind record reattachment and driver-mode recovery. The running 0.2.21 candidate was not replaced during this isolated preview verification.
+## Live 0.2.22 handoff and DPI-correct screenshot evidence
+- Candidate 0.2.22 was started with the same official Snug exit workflow. The previous 0.2.21 runtime exited gracefully before the new process started; the new runtime is PID 8960 at the time of this check.
+- The Snug VDD returned after restart as Windows DISPLAY150, physical **1080x1834** with WinForms DPI-virtualized logical size **720x1223**.
+- A screenshot from a DPI-unaware PowerShell process incorrectly showed the right side cut off, because it captured only 720x1223 while the real VDD was 1080x1834. This was a **test capture issue, not app clipping**.
+- Retesting with `SetThreadDpiAwarenessContext(PER_MONITOR_AWARE_V2)` before enumeration/capture recorded the entire 1080x1834 view, with all top-right controls, running/all tabs and app action buttons inside bounds: `F:\snug for Windows\diagnostics\SNUG_0.2.22_LIVE_VDD_DPI_CORRECT.png`.
+- Permanent capture utility: `Platforms/Windows/tests/CapturePhoneVdd.ps1`; verified output `SNUG_0.2.22_PMV2_TOOL_VERIFY.png` at 1080x1834. Use it for subsequent real-VDD visual acceptance instead of copying logical screen rectangles from an unaware process.
+- Installer: `F:\snug for Windows\artifacts\Snug-Setup-0.2.22-x64.exe`, 55,629,559 bytes, SHA-256 `37444AC8B7BDD14721BFB90C8059BCAF544C36831C481AE2EED5EF0C9616FCA8`.
+- Installed registry still lists 0.2.18 at `C:\Program Files\Snug\`; a portable 0.2.22 candidate is live. Upgrade still requires ordinary elevated installer approval. Do not conflate the two.

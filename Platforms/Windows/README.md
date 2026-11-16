@@ -90,3 +90,15 @@ Windows 版与原版功能映射：
 - 待完成：Windows 版自动更新发布通道；真实 iPhone + UU 远程端到端验收。
 
 原版 Snug 的核心交互以「连接 UU → 切换 Snug Phone → 选择窗口 → 左上角或底部返回窗口列表 → 结束远程自动恢复」为主线。
+### DPI-correct live phone-screen screenshot
+
+Use `tests/CapturePhoneVdd.ps1` to capture the **real Windows VDD in physical pixels**.
+The screenshot process must become Per-Monitor-DPI-Aware V2 before reading secondary-monitor bounds.
+Otherwise a 1080x1834 monitor reported as 720x1223 at 150% scaling looks incorrectly cropped.
+For example:
+
+```powershell
+& .\tests\CapturePhoneVdd.ps1 -OutputPath 'F:\snug for Windows\diagnostics\SnugPhone.png'
+```
+
+Running installed-version checks and in-app visual regression checks are separate from normal portable-preview tests.
