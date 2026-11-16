@@ -2,15 +2,29 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
-        ShowActivated="False" Topmost="True" Background="#111827"
-        Foreground="#EAF0FF" FontFamily="Segoe UI Variable Text">
-    <Grid Background="#111827">
-        <Button Click="ShowList_Click" ToolTip="返回窗口列表"
-                Background="Transparent" BorderBrush="Transparent"
+        ShowActivated="False" Topmost="True" Background="#F2F2F7"
+        Foreground="#73737C" FontFamily="Segoe UI">
+    <!-- Upstream PhoneScreenWindows.HomeBarView: a 28-point bottom panel
+         with a compact upward chevron. Only visible while an app is placed. -->
+    <Grid Background="#F2F2F7"
+          PreviewMouseLeftButtonDown="OnSwipeDown"
+          PreviewMouseMove="OnSwipeMove"
+          PreviewMouseLeftButtonUp="OnSwipeUp"
+          PreviewMouseWheel="OnSwipeWheel"
+          PreviewTouchDown="OnTouchDown"
+          PreviewTouchMove="OnTouchMove"
+          PreviewTouchUp="OnTouchUp">
+        <Button Click="ShowList_Click"
+                ToolTip="返回 App 资源库"
+                AutomationProperties.Name="返回 App 资源库"
+                Background="Transparent" BorderThickness="0"
                 Padding="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <Border Width="108" Height="4" CornerRadius="2"
-                    Background="#F4F5F7" HorizontalAlignment="Center"
-                    VerticalAlignment="Center"/>
+            <Path Data="M 10,23 L 22,11 L 34,23"
+                  Width="44" Height="30" Stretch="Uniform"
+                  Stroke="#86868F" StrokeThickness="4"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                  StrokeLineJoin="Round"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
     </Grid>
 </Window>

@@ -171,7 +171,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public string WindowCountText => Windows.Count == 0 ? "暂无可用窗口" : $"{Windows.Count} 个窗口";
     public string InstalledAppCountText => $"{InstalledApps.Count} 个 App";
     public string RunningAppCountText => $"{RunningApps.Count} 个 App";
-    public string VersionText => "0.2.15 · Windows";
+    public string VersionText => "0.2.19 · Windows";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -775,11 +775,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         RefreshWindows();
     }
 
-    private int CurrentHomeBarPixelHeight => ScreenFit.HomeBarHeight(_activeModeWidth) * 2;
-
+    // Screen.AllScreens returns DPI-virtualized desktop coordinates. Reserve
+    // the EXACT same bar height used by HomeBarWindow, not doubled raw pixels.
     private WindowBounds CurrentAppArea(DisplayInfo display) => display.Bounds with
     {
-        Height = Math.Max(200, display.Bounds.Height - CurrentHomeBarPixelHeight)
+        Height = Math.Max(200, display.Bounds.Height - ScreenFit.HomeBarHeight(display.Bounds.Width))
     };
 
     /// <summary>Only the Snug-owned monitor may change, and only to a VDD-advertised mode.</summary>
@@ -787,6 +787,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         var fit = new ScreenFit(CurrentDisplayChoice.Screen);
         if (!fit.Widths.Contains(width) || _phoneDisplay is null) return false;
+        // Windows signed VDD has a validated 20-point mode grid. Round up
+        // rather than requesting one of the unsupported intermediate widths.
+        width = VddResolutionProfile.SnapWidth(CurrentDisplayChoice, width);
         var pixels = fit.PixelSizeFor(width);
         var mode = new VddResolutionMode((int)pixels.Width, (int)pixels.Height, 60);
         await _modeGate.WaitAsync();
@@ -794,6 +797,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         {
             var display = _phoneDisplay;
             if (display is null) return false;
+            var previousGeometry = display.Bounds;
+            var changingMode = !_modeSwitcher.HasMode(display, mode);
             // WinForms screen bounds are DPI-virtualized (720x1223 on this
             // user's 1080x1834 VDD). Always compare/set the raw Win32 mode.
             // TryChange is a no-op when the existing raw mode already matches.
@@ -807,15 +812,26 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 ActivityStatus = switched.message;
                 return false;
             }
+            // Windows reports the newly switched native mode before it updates
+            // the DPI-virtualized desktop rectangle. The former loop exited as
+            // soon as EnumDisplaySettings matched, so the old 720x1223 bounds
+            // were reused on a new 820x1392 display. That left the browser and
+            // HomeBar covering only part of the actual virtual screen.
             DisplayInfo? found = null;
-            for (var attempt = 0; attempt < 20; attempt++)
+            var geometrySettled = !changingMode;
+            for (var attempt = 0; attempt < 40; attempt++)
             {
                 found = _displayEnumerator.FindSnugDisplay();
                 if (found is not null && _modeSwitcher.HasMode(found, mode))
-                    break;
+                {
+                    geometrySettled = !changingMode
+                        || found.Bounds.Width != previousGeometry.Width
+                        || found.Bounds.Height != previousGeometry.Height;
+                    if (geometrySettled) break;
+                }
                 await Task.Delay(150);
             }
-            if (found is null || !_modeSwitcher.HasMode(found, mode))
+            if (found is null || !_modeSwitcher.HasMode(found, mode) || !geometrySettled)
             {
                 ActivityStatus = "Windows 尚未确认 Snug 手机屏的新分辨率。";
                 return false;
@@ -849,12 +865,27 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             if (actual is null) return false;
             var area = CurrentAppArea(display);
             if (Math.Abs(actual.Value.X - area.X) > 3 || Math.Abs(actual.Value.Y - area.Y) > 3)
-                return true;
+            {
+                ActivityStatus = "应用拒绝移动到手机屏的可用区域，已保留原窗口位置。";
+                return false;
+            }
             var needed = fit.WidthToFit(
                 new PhoneSize(actual.Value.Width, actual.Value.Height),
                 new PhoneSize(area.Width, area.Height), _activeModeWidth);
-            if (needed <= _activeModeWidth) return true;
-            if (!await ChangePhoneModeAsync(needed)) return true; // Keep the current working mode.
+            if (needed <= _activeModeWidth)
+            {
+                if (actual.Value.Width > area.Width + 2 || actual.Value.Height > area.Height + 2)
+                {
+                    ActivityStatus = "应用的最小窗口尺寸超过手机屏最大档位，无法完整显示。";
+                    return false;
+                }
+                return true;
+            }
+            if (!await ChangePhoneModeAsync(needed))
+            {
+                ActivityStatus = "手机屏无法切到容纳此应用的档位，窗口已返回原位置。";
+                return false;
+            }
             if (!_windowManager.MoveTo(window.Key, CurrentAppArea(_phoneDisplay!)))
             {
                 ActivityStatus = "调整屏幕后 App 未能重新铺放。";
@@ -883,8 +914,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _showingPhoneList = false;
         _phoneSurface?.Hide();
         SyncGestures();
-        ShowAppBackBar(display, placed.AppName,
-            ZoomBook.IsZoomable(placed.ExecutablePath, placed.AppName), placed.ZoomSteps);
+        // Upstream PhoneScreenWindows presents the bottom HomeBar only while
+        // a placed app is visible; it does not cover the app with a top toolbar.
+        _appBackBar?.Hide();
         ShowHomeBar(display);
         _windowManager.Focus(placed.Key);
     }
@@ -983,7 +1015,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
             _phoneSurface?.Hide();
             SyncGestures();
-            ShowAppBackBar(display, window.AppName, canZoom, zoomSteps);
+            _appBackBar?.Hide();
             ShowHomeBar(display);
             ActivityStatus = $"已打开：{window.AppName}";
         }
@@ -1083,6 +1115,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     private void OnTick(object? sender, EventArgs e)
     {
+        // On Windows 10, the secondary monitor taskbar may promote itself after
+        // the VDD mode settles. Keep upstream's HomeBar visible without taking
+        // keyboard focus; the method is a no-op unless that taskbar overlaps it.
+        _homeBar?.EnsureAboveTaskbar();
+
         if (_askingDialogKey is { } asking
             && !_recoveringDialog && !_windowManager.IsAlive(asking))
         {

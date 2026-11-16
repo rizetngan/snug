@@ -19,13 +19,13 @@ public sealed class VddResolutionProfileTests
         """;
 
     [Fact]
-    public void StandardIphoneProfileAdvertisesOnlyTheValidatedBaseMode()
+    public void StandardIphoneProfileAdvertisesHardwareVerifiedTwentyPointSteps()
     {
         var modes = VddResolutionProfile.Create(PhoneChoice.Standard);
 
-        Assert.Single(modes);
+        Assert.Equal(28, modes.Count);
         Assert.Equal(new VddResolutionMode(1080, 1900, 60), modes[0]);
-        Assert.Equal(modes[0], modes[^1]);
+        Assert.Equal(new VddResolutionMode(2160, 3800, 60), modes[^1]);
         Assert.All(modes, mode => Assert.Equal(60, mode.RefreshRate));
         Assert.Equal(modes.Count, modes.Select(mode => (mode.Width, mode.Height)).Distinct().Count());
         Assert.True(modes.Zip(modes.Skip(1)).All(pair => pair.First.Width < pair.Second.Width));
@@ -40,7 +40,7 @@ public sealed class VddResolutionProfileTests
         Assert.Equal("1", root.Element("monitors")!.Element("count")!.Value);
         Assert.Equal("default", root.Element("gpu")!.Element("friendlyname")!.Value);
         Assert.Equal("true", root.Element("edid")!.Element("CustomEdid")!.Value);
-        Assert.Single(root.Element("resolutions")!.Elements("resolution"));
+        Assert.Equal(28, root.Element("resolutions")!.Elements("resolution").Count());
         Assert.Equal("1080", root.Element("resolutions")!.Elements("resolution").First().Element("width")!.Value);
         Assert.Equal("1900", root.Element("resolutions")!.Elements("resolution").First().Element("height")!.Value);
     }
@@ -68,6 +68,29 @@ public sealed class VddResolutionProfileTests
         Assert.True(modes[0].Width > 1080);
         Assert.True(modes[0].Height < modes[0].Width * 2);
         Assert.Equal(60, modes[0].RefreshRate);
+    }
+
+    [Theory]
+    [InlineData(540, 540)]
+    [InlineData(550, 560)]
+    [InlineData(570, 580)]
+    [InlineData(800, 800)]
+    [InlineData(1070, 1080)]
+    [InlineData(1080, 1080)]
+    public void SnapWidthRoundsUpToTheNextDriverAdvertisedMode(int requested, int expected)
+    {
+        Assert.Equal(expected, VddResolutionProfile.SnapWidth(PhoneChoice.Standard, requested));
+    }
+
+    [Fact]
+    public void StandardProfileAdvertisesModesAtMostTwentyPointsApart()
+    {
+        var widths = VddResolutionProfile.SupportedWidths(PhoneChoice.Standard);
+        Assert.Equal(28, widths.Count);
+        Assert.Equal(540, widths[0]);
+        Assert.Equal(1080, widths[^1]);
+        Assert.All(widths.Zip(widths.Skip(1)), pair =>
+            Assert.InRange(pair.Second - pair.First, 1, 20));
     }
 
     [Fact]

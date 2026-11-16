@@ -44,9 +44,11 @@ public sealed class ScreenFitTests
         Assert.Equal(expected, next);
         Assert.Contains(next, fit.Widths);
         var vddModes = VddResolutionProfile.Create(PhoneChoice.Standard);
-        Assert.Single(vddModes);
+        Assert.Equal(28, vddModes.Count);
         Assert.Equal(fit.PixelSizeFor(fit.BaseWidth).Width, vddModes[0].Width);
-        // Logical sizing still chooses a fit width without advertising 55 driver modes.
+        Assert.Equal(1080, vddModes[^1].Width / 2);
+        Assert.Contains(VddResolutionProfile.SnapWidth(PhoneChoice.Standard, next),
+            VddResolutionProfile.SupportedWidths(PhoneChoice.Standard));
     }
 
     [Fact]

@@ -19,19 +19,34 @@ public static class VddResolutionProfile
             throw new ArgumentOutOfRangeException(nameof(refreshRate));
 
         var fit = new ScreenFit(choice.Screen);
-        // The signed VDD driver on Windows 10 can enumerate its adapter but fail
-        // to expose any monitor with our previous 55-mode profile. The verified
-        // recovery on 2026-11-16 restored a working SNG00F0 monitor using one
-        // base resolution. Keep logical ScreenFit widths separate from the driver
-        // mode list until a larger set passes real driver and UU acceptance.
-        var size = fit.PixelSizeFor(fit.BaseWidth);
-        return
-        [
-            new VddResolutionMode(
+        // Hardware-tested on this Windows 10 / signed MttVDD: 2, 5, 12 and 28
+        // mode tables enumerate and switch successfully. The original 55-mode
+        // table does not enumerate a monitor. Retain the upstream ScreenFit
+        // algorithm, but advertise its widths every 20 points on Windows.
+        // This bounds extra downscaling to <4%, versus <2% upstream.
+        return SupportedWidths(choice)
+            .Select(width => fit.PixelSizeFor(width))
+            .Select(size => new VddResolutionMode(
                 checked((int)Math.Round(size.Width, MidpointRounding.AwayFromZero)),
                 checked((int)Math.Round(size.Height, MidpointRounding.AwayFromZero)),
-                refreshRate)
-        ];
+                refreshRate))
+            .ToArray();
+    }
+
+    public static IReadOnlyList<int> SupportedWidths(PhoneChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        var fit = new ScreenFit(choice.Screen);
+        return fit.Widths.Where((_, index) => index % 2 == 0)
+            .Append(fit.Widths[^1])
+            .Distinct()
+            .ToArray();
+    }
+
+    public static int SnapWidth(PhoneChoice choice, int requestedWidth)
+    {
+        var supported = SupportedWidths(choice);
+        return supported.FirstOrDefault(width => width >= requestedWidth, supported[^1]);
     }
 
     public static string Apply(

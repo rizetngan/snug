@@ -110,8 +110,9 @@ public sealed class PhoneModelsTests
 
         var modes = VddResolutionProfile.Create(selected);
         Assert.NotEmpty(modes);
-        Assert.Single(modes);
+        Assert.InRange(modes.Count, 1, 28);
         Assert.Equal(fit.BaseWidth * 2, modes[0].Width);
+        Assert.Equal(2160, modes[^1].Width);
         Assert.All(modes, mode =>
         {
             Assert.True(mode.Width is >= 1080 and <= 2160);
