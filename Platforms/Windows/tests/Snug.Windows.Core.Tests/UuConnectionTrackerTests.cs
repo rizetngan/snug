@@ -86,6 +86,41 @@ public sealed class UuConnectionTrackerTests
     }
 
     [Fact]
+    public void SameNamedControllerChangingBetweenPhoneAndDesktopUpdatesImmediately()
+    {
+        var tracker = new UuConnectionTracker();
+        var now = DateTimeOffset.Parse("2026-11-17T00:00:00Z");
+        var name = "UU Remote";
+
+        var connected = tracker.Update(new(false, new(name, ControllerKind.Phone), true), now);
+        Assert.Equal(ConnectionTransitionKind.Connected, Assert.Single(connected).Kind);
+        Assert.True(tracker.WantsPhoneScreen(now.AddSeconds(3)));
+
+        var desktop = tracker.Update(
+            new(false, new(name, ControllerKind.Desktop), true),
+            now.AddSeconds(4));
+        Assert.Equal(ConnectionTransitionKind.ControllerChanged, Assert.Single(desktop).Kind);
+        Assert.Equal(ControllerKind.Desktop, tracker.Controller!.Kind);
+        Assert.False(tracker.WantsPhoneScreen(now.AddSeconds(4)));
+
+        var phoneAgain = tracker.Update(
+            new(false, new(name, ControllerKind.Phone), true),
+            now.AddSeconds(5));
+        Assert.Equal(ConnectionTransitionKind.ControllerChanged, Assert.Single(phoneAgain).Kind);
+        Assert.True(tracker.WantsPhoneScreen(now.AddSeconds(5)));
+    }
+
+    [Fact]
+    public void RepeatedIdenticalControllerDoesNotTriggerRedundantTransitions()
+    {
+        var tracker = new UuConnectionTracker();
+        var now = DateTimeOffset.Parse("2026-11-17T00:00:00Z");
+        var current = new UuSignals(false, new("UU Remote", ControllerKind.Phone), true);
+        tracker.Update(current, now);
+
+        Assert.Empty(tracker.Update(current, now.AddMilliseconds(500)));
+    }
+    [Fact]
     public void UnknownControllerGetsGracePeriodButDesktopDoesNotCreatePhoneScreen()
     {
         var tracker = new UuConnectionTracker();

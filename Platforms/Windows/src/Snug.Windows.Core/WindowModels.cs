@@ -30,7 +30,9 @@ public sealed record WindowRestoreRecord(
     string ExecutablePath,
     WindowPlacementData OriginalPlacement,
     int ZoomSteps,
-    DateTimeOffset CapturedAt);
+    DateTimeOffset CapturedAt,
+    string? Title = null,
+    WindowBounds? FilledBounds = null);
 
 public sealed record DisplayInfo(
     string DeviceName,

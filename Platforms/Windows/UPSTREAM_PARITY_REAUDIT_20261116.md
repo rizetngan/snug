@@ -67,3 +67,20 @@ Other visual notes: both screenshots have a similar App title, search, Running/A
 - Permanent capture utility: `Platforms/Windows/tests/CapturePhoneVdd.ps1`; verified output `SNUG_0.2.22_PMV2_TOOL_VERIFY.png` at 1080x1834. Use it for subsequent real-VDD visual acceptance instead of copying logical screen rectangles from an unaware process.
 - Installer: `F:\snug for Windows\artifacts\Snug-Setup-0.2.22-x64.exe`, 55,629,559 bytes, SHA-256 `37444AC8B7BDD14721BFB90C8059BCAF544C36831C481AE2EED5EF0C9616FCA8`.
 - Installed registry still lists 0.2.18 at `C:\Program Files\Snug\`; a portable 0.2.22 candidate is live. Upgrade still requires ordinary elevated installer approval. Do not conflate the two.
+## Windows 0.2.23: closed-window reattachment implementation and live acceptance
+
+The Windows port now records the *actual* post-fit `FilledBounds` and original title with the persisted `WindowRestoreRecord` (optional fields preserve 0.2.22 and earlier JSON compatibility).
+
+When the HWND is destroyed, `AppController` moves the recoverable record from `phone-screen.json` into a separate durable `left-behind.json` book. The record is only eligible for matching if the executable path and the dimensions actually filled by Snug agree (less than 2 logical pixels difference). Entries expire after 14 days; at most 20 are kept. A replacement HWND can be restored to the original WindowPlacement and the debt is consumed only on successful restore. Cross-PID text zoom isn't blindly undone.
+
+**Live Windows end-to-end test using isolated WinForms fixture (2026-11-17):**
+- Fixture executable: `F:\snug for Windows\diagnostics\leftbehind-e2e\SnugRestoreFixture.exe`. No real app window was used.
+- Original fixture window at `140,130 760x560` moved through the phone UI search result to the actual Snug phone VDD, becoming `1920,0 720x1186`.
+- `phone-screen.json` persisted original placement, title and `FilledBounds=720x1186`.
+- Fixture closed through its own WindowPattern. Within ~4 s Snug deleted the active ledger and wrote exactly one matching record to `left-behind.json`.
+- Negative: reopening same executable at `140,130 760x560` left the window untouched and kept one outstanding record.
+- Positive: reopening same executable with a final phone-filled `720x1186` window on the VDD was automatically restored within 5 s to `140,130 760x560`; the outstanding book became `[]`.
+- Fixture was closed from the restored main display; no test fixture process remained, no active phone ledger remained, and the 0.2.23 Snug candidate stayed running.
+- Legacy JSON deserialization test added; 144/144 core unit tests passed, Release 0 errors, 0 warnings.
+
+**Still not claimed equivalent to all original macOS 2.4.4 behavior:** a hidden/minimized window returning without the old dimensions, sophisticated app-wide/workspace cross-process zoom repayment, special close-button intercept, and live UU controller phone-vs-desktop classification require additional validation/implementation. Current UU tracker now reacts when a controller changes **kind with the same name**, but the underlying Windows UuSessionDetector still reports Unknown.

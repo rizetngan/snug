@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Snug.Windows.Core;
@@ -83,7 +83,7 @@ public sealed class WindowManager
                 placement.NormalPosition.Right - placement.NormalPosition.Left,
                 placement.NormalPosition.Bottom - placement.NormalPosition.Top));
 
-        return new WindowRestoreRecord(1, window.Key, window.AppName, window.ExecutablePath, data, zoomSteps, DateTimeOffset.UtcNow);
+        return new WindowRestoreRecord(1, window.Key, window.AppName, window.ExecutablePath, data, zoomSteps, DateTimeOffset.UtcNow, window.Title);
     }
 
     /// <summary>Finds a visible, owned, modal dialog belonging to the given app.</summary>

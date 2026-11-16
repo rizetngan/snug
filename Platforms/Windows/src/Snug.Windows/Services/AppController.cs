@@ -35,7 +35,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private readonly RestoreLedger _ledger = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Snug", "phone-screen.json"));
-    private readonly DispatcherTimer _timer;
+    // Unlike the active single-window ledger, this book survives a destroyed HWND.
+    private readonly LeftBehindBook _leftBehind = new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Snug", "left-behind.json"));    private readonly DispatcherTimer _timer;
 
     private DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
     private DateTimeOffset _lastDisplayScan = DateTimeOffset.MinValue;
@@ -55,6 +58,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private bool _pullingWindow;
     private WindowKey? _askingDialogKey;
     private bool _recoveringDialog;
+    private bool _recoveringLostWindow;
     private int _activeModeWidth = ScreenFit.Standard.BaseWidth;
     private int _placedModeWidth = ScreenFit.Standard.BaseWidth;
     private bool _gesturesEnabled;
@@ -1003,6 +1007,20 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 return;
             }
 
+            // Read the actual post-fit dimensions. This is the only safe
+            // signature for matching an app window recreated by Windows.
+            var filled = _windowManager.ReadBounds(window.Key);
+            if (filled is null)
+            {
+                await PutBackAsync();
+                ShowPhoneList();
+                ActivityStatus = "窗口铺屏后无法读取实际大小，已尝试还原";
+                return;
+            }
+            record = record with { FilledBounds = filled };
+            _placed = record;
+            _ledger.Save(record);
+
             display = _phoneDisplay!;
             _placedModeWidth = _activeModeWidth;
             _showingPhoneList = false;
@@ -1041,9 +1059,16 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         {
             if (!_windowManager.IsAlive(record.Key))
             {
+                // Keep the original position when an app destroys the HWND.
+                var remembered = _leftBehind.Add(record, DateTimeOffset.UtcNow);
                 _ledger.Clear();
-                return (Restored: true, Message: "原窗口已关闭，还原记录已清理", Remaining: (WindowRestoreRecord?)null);
+                return (Restored: true,
+                    Message: remembered
+                        ? "窗口已消失；已记录原位置，重新出现时将检查是否需要还原"
+                        : "原窗口已关闭；没有可匹配的铺屏记录",
+                    Remaining: (WindowRestoreRecord?)null);
             }
+
             if (!_windowManager.IsResponsive(record.Key))
                 return (Restored: false, Message: "App 暂时无响应，保留还原记录，恢复后可重试", Remaining: (WindowRestoreRecord?)record);
 
@@ -1145,6 +1170,14 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         {
             _lastWindowScan = now;
             RefreshWindows();
+            CheckLeftBehindReturns(now);
+        }
+
+        if (!_recoveringLostWindow && !_pullingWindow && !_recoveringDialog
+            && _placed is { } current && !_windowManager.IsAlive(current.Key))
+        {
+            _recoveringLostWindow = true;
+            _ = RecoverLostWindowAsync();
         }
         if (now - _lastDriverScan > TimeSpan.FromSeconds(4))
         {
@@ -1418,13 +1451,93 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         return _displayEnumerator.FindSnugDisplay() is null;
     }
 
+    private async Task RecoverLostWindowAsync()
+    {
+        try
+        {
+            await PutBackAsync();
+            if (!HasPlacedWindow)
+                ShowPhoneList();
+        }
+        catch (IOException error) { ActivityStatus = "记录关闭窗口状态失败：" + error.Message; }
+        catch (UnauthorizedAccessException error) { ActivityStatus = "记录关闭窗口状态失败：" + error.Message; }
+        finally { _recoveringLostWindow = false; }
+    }
+
+    private void CheckLeftBehindReturns(DateTimeOffset now)
+    {
+        if (_previewOpen || _placed is not null || _pullingWindow ||
+            _recoveringLostWindow || _ledger.Load() is not null)
+            return;
+
+        try { _leftBehind.Prune(now); }
+        catch (IOException error)
+        {
+            ActivityStatus = "维护窗口恢复记录失败：" + error.Message;
+            return;
+        }
+        catch (UnauthorizedAccessException error)
+        {
+            ActivityStatus = "维护窗口恢复记录失败：" + error.Message;
+            return;
+        }
+        if (_leftBehind.Entries.Count == 0) return;
+        foreach (var window in Windows)
+        {
+            if (window.IsMinimized || !_windowManager.IsResponsive(window.Key)) continue;
+            if (_windowManager.ReadBounds(window.Key) is not { } actual) continue;
+            if (_leftBehind.Match(window, actual, now) is not { } match) continue;
+
+            var old = match.Record;
+            // On Windows a recreated process need not retain old text zoom.
+            // Undo zoom only for the same process and a supported editor.
+            var safeZoom = old.Key.ProcessId == window.Key.ProcessId
+                && ZoomBook.IsZoomable(window.ExecutablePath, window.AppName)
+                ? old.ZoomSteps : 0;
+            if (safeZoom != 0 && !_windowManager.Zoom(window, -safeZoom))
+                return;
+
+            var restored = old with { Key = window.Key, ZoomSteps = 0 };
+            if (!_windowManager.Restore(restored))
+            {
+                if (safeZoom != 0) _windowManager.Zoom(window, safeZoom);
+                return;
+            }
+
+            try { _leftBehind.Remove(match); }
+            catch (IOException error)
+            {
+                ActivityStatus = "窗口已恢复，但记录更新失败：" + error.Message;
+                return;
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                ActivityStatus = "窗口已恢复，但记录更新失败：" + error.Message;
+                return;
+            }
+            ActivityStatus = "已恢复重新出现的窗口：" + window.Title;
+            return;
+        }
+    }
     private void RecoverInterruptedMove()
     {
         var record = _ledger.Load();
         if (record is null) return;
         if (!_windowManager.IsAlive(record.Key))
         {
-            _ledger.Clear();
+            try
+            {
+                _leftBehind.Add(record, DateTimeOffset.UtcNow);
+                _ledger.Clear();
+            }
+            catch (IOException error)
+            {
+                ActivityStatus = "暂时无法保存窗口恢复记录：" + error.Message;
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                ActivityStatus = "暂时无法保存窗口恢复记录：" + error.Message;
+            }
             return;
         }
         if (!_windowManager.IsResponsive(record.Key))

@@ -62,7 +62,7 @@ public sealed class UuConnectionTracker
                 _interruptedAt = null;
                 transitions.Add(new(resumed ? ConnectionTransitionKind.Resumed : ConnectionTransitionKind.Connected, _controller));
             }
-            else if (signals.Controller is { } next && _controller?.Name != next.Name)
+            else if (signals.Controller is { } next && _controller != next)
             {
                 _controller = next;
                 transitions.Add(new(ConnectionTransitionKind.ControllerChanged, _controller));
