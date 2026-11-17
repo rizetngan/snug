@@ -116,3 +116,9 @@ When the HWND is destroyed, `AppController` moves the recoverable record from `p
 - Actual Windows end-to-end isolated WinForms fixture deliberately canceled FormClosing. First graceful close logged rejection; after timeout force notice appeared while fixture remained alive. Cancel removed the notice without killing the fixture. A second graceful close logged rejection; explicitly invoking force ended only the fixture and cleared the notice (no active window debt). No actual user app was terminated.
 - Physical screenshot: F:\snug for Windows\diagnostics\SNUG_0.2.26_FORCE_QUIT_NOTICE.png (1080x1834). Screenshot inspection caught pale cancel label; fixed by using the existing InlineCancel dark TextBlock. Original screenshot predates this cosmetic correction. Core tests 173/173 passed before contrast fix; final build/regression required.
 - Remaining: genuine iPhone/UU touch acceptance, live controller identity on Qt UU, cross-process text zoom recovery, and non-Snug display-mode preservation across topology transitions.
+## 0.2.26 formal installation verified
+- Final regression after cancel-button contrast fix: 173/173 PASS; Release 0 errors, 0 warnings. Commit 9614b80.
+- Verified setup SHA-256 6902EBCF969EAC969D1788E0E7F3BDC5305806D37B3DD8EE887EAA13BEAD3DF2; UAC-approved normal upgrade returned exit code 0. Installed DLL, registry and settings UI all show 0.2.26.
+- Started from Program Files launcher PID 27088; Run registration still targets the installed launcher. No test fixture remains; no active placement ledger.
+- DPI-aware real phone display capture: F:\snug for Windows\diagnostics\SNUG_INSTALLED_0.2.26_LIVE_VDD.png.
+- The final installed version is not the earlier portable candidate. Reboot has not been performed during this round.
