@@ -4,7 +4,8 @@
     [Parameter(Mandatory=$true)][string]$HelperDll,
     [Parameter(Mandatory=$true)][string]$ReportPath,
     [switch]$ConfirmedDisconnected,
-    [switch]$Preflight
+    [switch]$Preflight,
+    [switch]$RequirePlacedWindow
 )
 $ErrorActionPreference='Stop'
 $ledger=Join-Path $env:LOCALAPPDATA 'Snug\phone-screen.json'
@@ -147,7 +148,7 @@ try{
     # Poll physical topology and lifecycle diagnostics only; no screenshots,
     # user application names, window content or input events.
     $limit=[DateTime]::UtcNow.AddSeconds(540)
-    $last=$null; $readyForPhone=$false; $baselineDeadline=[DateTime]::UtcNow.AddSeconds(20); $sawActive=$false; $inactiveSince=$null; $stableSince=$null; $releaseConfirmed=$false
+    $last=$null; $readyForPhone=$false; $baselineDeadline=[DateTime]::UtcNow.AddSeconds(20); $sawActive=$false; $sawScreenWhileActive=$false; $sawPlacedWindow=$false; $inactiveSince=$null; $endedSince=$null; $stableSince=$null; $releaseConfirmed=$false; $screenPresentAtEnded=$false; $appAuditPath=$auditPath+'.app.jsonl'
     while([DateTime]::UtcNow-lt$limit-and!$candidate.HasExited-and!$helper.HasExited){
         $screens=@([SnugPilotPipe]::Screens()|ForEach-Object{$_.Description})
         $hasLedger=Test-Path $ledger
@@ -157,33 +158,62 @@ try{
         }
         $now=[DateTime]::UtcNow
         $snapshot=[ordered]@{screens=$screens;placed=$hasLedger;phase=$phase}
+        if($hasLedger){$sawPlacedWindow=$true}
         if(!$readyForPhone-and$phase-eq'Inactive'-and(($screens-join';')-eq($baseline-join';'))-and!$hasLedger){
             $readyForPhone=$true;Record 'ReadyForPhone' $true
         }
         if(!$readyForPhone-and$now-gt$baselineDeadline){throw 'Verified inactive baseline not reached'}
-        if($phase-eq'Active'){$sawActive=$true;$inactiveSince=$null;$stableSince=$null}
+        if($phase-eq'Active'){
+            $sawActive=$true
+            if($screens.Count-gt$baseline.Count){$sawScreenWhileActive=$true}
+            if($null-ne$inactiveSince){$inactiveSince=$null;$endedSince=$null;$stableSince=$null;$screenPresentAtEnded=$false}
+        }
         if($sawActive-and$phase-eq'Inactive'-and$null-eq$inactiveSince){
             $inactiveSince=$now;Record 'InactiveObserved' $true
         }
+
+        $auditRows=@()
+        if(Test-Path $appAuditPath){
+            $auditRows=@(Get-Content -LiteralPath $appAuditPath -Tail 160 -Encoding UTF8|ForEach-Object{try{$_|ConvertFrom-Json}catch{}})
+        }
+        $endedRow=$auditRows|Where-Object{$_.name-eq'SessionState'-and$_.value.transitions -contains 'Ended'}|Select-Object -Last 1
+        if($null-eq$endedSince-and$null-ne$endedRow){
+            $endedSince=[DateTimeOffset]::Parse($endedRow.utc).UtcDateTime
+            $screenPresentAtEnded=[bool]$endedRow.value.phoneDisplay -and [bool]$endedRow.value.snugDisplay
+            Record 'EndedObserved' @{screenPresent=$screenPresentAtEnded;connected=$endedRow.value.connected;wantsPhoneScreen=$endedRow.value.wantsPhoneScreen;dismissed=$endedRow.value.presentationDismissed;phoneScreenEnabled=$endedRow.value.phoneScreenEnabled}
+            if(!$screenPresentAtEnded){
+                Record 'AutoReleaseNotProven' 'Phone display was already absent when UU episode reached Ended'
+                break
+            }
+        }
+
+        $endStart=$null;$displayStop=$null;$putBack=$null
+        if($null-ne$endedSince){
+            $endStart=$auditRows|Where-Object{$_.name-eq'EndPhoneSession'-and$_.value.stage-eq'begin'-and[DateTimeOffset]::Parse($_.utc).UtcDateTime -ge $endedSince}|Select-Object -First 1
+            $displayStop=$auditRows|Where-Object{$_.name-eq'EndPhoneSession'-and$_.value.stage-eq'display-stop'-and$_.value.stopped-eq$true-and[DateTimeOffset]::Parse($_.utc).UtcDateTime -ge $endedSince}|Select-Object -Last 1
+            $putBack=$auditRows|Where-Object{$_.name-eq'EndPhoneSession'-and$_.value.stage-eq'after-putback'-and[DateTimeOffset]::Parse($_.utc).UtcDateTime -ge $endedSince}|Select-Object -Last 1
+        }
         $returned=(($screens-join';')-eq($baseline-join';'))-and!$hasLedger
-        if($sawActive-and$null-ne$inactiveSince-and$returned){
+        $windowRestored=(!$RequirePlacedWindow)-or($sawPlacedWindow-and$null-ne$putBack-and$putBack.value.putBackStatus-eq'窗口已还原')
+        if($sawActive-and$sawScreenWhileActive-and$null-ne$inactiveSince-and$null-ne$endedSince-and$screenPresentAtEnded-and$null-ne$endStart-and$null-ne$displayStop-and$returned-and$windowRestored){
             if($null-eq$stableSince){$stableSince=$now}
             if($now-$stableSince -ge [TimeSpan]::FromSeconds(2)){
-                $releaseConfirmed=$true;Record 'AutoReleaseConfirmed' @{secondsAfterInactive=[Math]::Round(($now-$inactiveSince).TotalSeconds,2);screenCount=$screens.Count;placed=$hasLedger}
+                $releaseConfirmed=$true
+                Record 'AutoReleaseConfirmed' @{secondsAfterInactive=[Math]::Round(($now-$inactiveSince).TotalSeconds,2);secondsAfterEnded=[Math]::Round(($now-$endedSince).TotalSeconds,2);screenCount=$screens.Count;placed=$hasLedger;windowRestored=$windowRestored;putBackStatus=$putBack.value.putBackStatus}
                 $key=$snapshot|ConvertTo-Json -Compress
                 if($key-ne$last){Record 'Topology' $snapshot;$last=$key}
                 break
             }
         }else{$stableSince=$null}
         if($null-ne$inactiveSince-and$now-$inactiveSince -ge [TimeSpan]::FromSeconds(45)-and!$releaseConfirmed){
-            Record 'AutoReleaseNotObserved' @{secondsAfterInactive=45;screenCount=$screens.Count;placed=$hasLedger}
+            Record 'AutoReleaseNotObserved' @{secondsAfterInactive=45;endedObserved=($null-ne$endedSince);screenPresentAtEnded=$screenPresentAtEnded;screenCount=$screens.Count;placed=$hasLedger;sawPlacedWindow=$sawPlacedWindow;endStartedAfterEnded=($null-ne$endStart);displayStopConfirmed=($null-ne$displayStop);windowRestored=$windowRestored}
             break
         }
         $key=$snapshot|ConvertTo-Json -Compress
         if($key-ne$last){Record 'Topology' $snapshot;$last=$key}
         Start-Sleep -Milliseconds 500
     }
-    Record 'ObservationEnded' @{releaseConfirmed=$releaseConfirmed;sawActive=$sawActive}
+    Record 'ObservationEnded' @{releaseConfirmed=$releaseConfirmed;sawActive=$sawActive;sawScreenWhileActive=$sawScreenWhileActive;sawPlacedWindow=$sawPlacedWindow;endedObserved=($null-ne$endedSince);screenPresentAtEnded=$screenPresentAtEnded}
 }finally{
     try{
         if($candidate-and!$candidate.HasExited){
