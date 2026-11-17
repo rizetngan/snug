@@ -1,6 +1,7 @@
 using System.IO;
 using System.IO.Pipes;
 using System.Security.Principal;
+using System.Text.Json;
 using Snug.Windows.Core;
 
 namespace Snug.Windows.Services;
@@ -13,10 +14,19 @@ internal sealed class UuCapturePilotReader : IDisposable
     private readonly CancellationTokenSource _stop=new();
     private readonly UuCaptureFeed _feed;
     private readonly Task _reader;
+    private StreamWriter? _audit;
+    private UuCaptureSnapshot? _lastApplied;
 
     internal UuCapturePilotReader(Guid id)
     {
         _feed=new(id);
+        // Local acceptance evidence only, never opened during normal startup.
+        var audit=Environment.GetEnvironmentVariable("SNUG_UU_CAPTURE_PILOT_AUDIT");
+        if(!string.IsNullOrWhiteSpace(audit))
+        {
+            try{_audit=new StreamWriter(new FileStream(audit,FileMode.CreateNew,FileAccess.Write,FileShare.Read)){AutoFlush=true};}
+            catch(Exception e) when(e is IOException or UnauthorizedAccessException or ArgumentException) { }
+        }
         _reader=ReadAsync(id,_stop.Token);
     }
 
@@ -26,7 +36,19 @@ internal sealed class UuCapturePilotReader : IDisposable
 
     internal UuCaptureSnapshot Sample(UuServerGeneration? server)
     {
-        lock(_gate)return _feed.Get(DateTimeOffset.UtcNow,server);
+        lock(_gate)
+        {
+            var now=DateTimeOffset.UtcNow;
+            var applied=_feed.Get(now,server);
+            if(_audit is not null&&_lastApplied!=applied)
+            {
+                _lastApplied=applied;
+                try{_audit.WriteLine(JsonSerializer.Serialize(new{utc=now,phase=applied.Phase.ToString(),
+                    contexts=applied.ObservedContexts,complete=applied.CompleteInventory}));}
+                catch(IOException){try{_audit.Dispose();}catch(IOException){} _audit=null;}
+            }
+            return applied;
+        }
     }
 
     private async Task ReadAsync(Guid id,CancellationToken stop)
@@ -52,6 +74,7 @@ internal sealed class UuCapturePilotReader : IDisposable
     public void Dispose()
     {
         _stop.Cancel();
+        lock(_gate){try{_audit?.Dispose();}catch(IOException){} _audit=null;}
         // Do not wait synchronously for pipe I/O on the WPF dispatcher.
         _ = _reader.ContinueWith(_=>_stop.Dispose(),TaskScheduler.Default);
     }
