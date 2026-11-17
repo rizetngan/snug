@@ -49,6 +49,8 @@ public partial class PhoneSurfaceWindow : Window
     public PhoneSurfaceWindow(AppController controller, bool preview)
     {
         InitializeComponent();
+        PhoneDragScroll.Attach(HomeScroll);
+        PhoneDragScroll.Attach(SearchScroll);
         _controller = controller;
         IsPreview = preview;
         if (preview) UpdatePreviewCanvas();

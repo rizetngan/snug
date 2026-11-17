@@ -566,7 +566,7 @@
                             Foreground="{StaticResource PhoneTint}" FontSize="18"
                             HorizontalContentAlignment="Right" AutomationProperties.Name="取消搜索"><TextBlock Text="取消" Foreground="{StaticResource PhoneTint}" /></Button>
                 </Grid>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
+                <ScrollViewer x:Name="SearchScroll" Grid.Row="1" VerticalScrollBarVisibility="Hidden">
                     <StackPanel Margin="20,8,20,24">
                         <StackPanel x:Name="SearchResults" Visibility="Collapsed">
                             <StackPanel x:Name="SearchAppsSection">

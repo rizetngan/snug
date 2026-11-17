@@ -147,6 +147,7 @@
                      VirtualizingPanel.VirtualizationMode="Recycling"
                      ScrollViewer.VerticalScrollBarVisibility="Hidden"
                      ScrollViewer.CanContentScroll="True"
+                     VirtualizingPanel.ScrollUnit="Pixel"
                      HorizontalContentAlignment="Stretch">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>

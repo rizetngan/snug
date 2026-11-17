@@ -33,6 +33,7 @@ public partial class PhoneModelPicker : System.Windows.Controls.UserControl, INo
     public PhoneModelPicker()
     {
         InitializeComponent();
+        Snug.Windows.Services.PhoneDragScroll.AttachList(ModelsList);
         DataContext = this;
     }
 
