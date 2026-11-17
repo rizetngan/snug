@@ -6,7 +6,7 @@
 
 # Snug
 
-**A native-grade Mac experience, right on your phone**
+**A native-grade Mac and Windows experience, right on your phone**
 
 Built for UU Remote<br>Native portrait display · Native gestures · App Library · Fits every phone
 
@@ -23,6 +23,8 @@ Built for UU Remote<br>Native portrait display · Native gestures · App Library
 
 > Snug continues [aoyamashou/UUyc-companion](https://github.com/aoyamashou/UUyc-companion) (UU Remote Companion by AoyamaShou, MIT License), with the original author's copyright notices and commit history fully preserved. Since version 2.0, it has been redesigned around the phone screen.
 
+> **Platform support**: macOS is the original released platform. Windows is an added community contribution preview (0.2.33), based on Snug 2.5.0 and preserving its history and product design, pending upstream review. The feature details and screenshots below describe the original macOS implementation; see the [Windows platform guide](Platforms/Windows/README.en.md) for Windows installation, usage and limits.
+
 ## 📥 Download
 
 <img src="Assets/AppIcon/AppIcon-1024.png" width="88" align="left" alt="Snug icon">
@@ -36,11 +38,13 @@ Built for UU Remote<br>Native portrait display · Native gestures · App Library
 | **China mirror** | Served via Tencent Cloud CDN; recommended in mainland China | [Snug.dmg](https://dl.zephyrxiang.com/snug/latest/Snug.dmg) |
 | **GitHub Releases** | Release notes, checksums, and previous versions | [Go to Releases](https://github.com/zephyr4123/snug/releases/latest) |
 
-Both sources provide the identical package.
+Both sources provide the identical macOS package.
+
+**Snug for Windows (community preview)** · Tested on Windows 10 22H2 x64; the installer bundles the runtime and signed virtual display driver. Not yet published in upstream Releases; see [Windows build and installation](Platforms/Windows/README.en.md).
 
 ## ✨ Native Experience
 
-UU Remote scales your entire desktop down to fit the phone, shrinking text and controls several times over. Snug adds a dedicated portrait display for the phone, where your Mac's windows appear at a phone-native scale, looking and behaving like native apps.
+UU Remote scales your entire desktop down to fit the phone, shrinking text and controls several times over. Snug adds a dedicated portrait display for the phone, where your computer's windows appear at a phone-native scale, looking and behaving like native apps.
 
 <p align="center"><img src="https://dl.zephyrxiang.com/snug/media/compare-uu-original.cf4158d1.png" width="36%" alt="UU Remote alone: the whole desktop squeezed onto the phone"> <img src="https://dl.zephyrxiang.com/snug/media/phone-claude-code.93e21d9d.png" width="36%" alt="With Snug: the window fills the screen with larger text"><br><sub>Same content · Left: UU Remote alone · Right: with Snug</sub></p>
 
@@ -48,7 +52,7 @@ UU Remote scales your entire desktop down to fit the phone, shrinking text and c
 
 - **A dedicated portrait screen**: once your phone connects, "Snug 手机屏" (Snug Phone Screen) appears in UU Remote's screen list, matching your phone's proportions in 2x HiDPI
 - **Full-screen windows**: the selected window takes over the entire screen
-- **Larger text**: Ghostty, Terminal, iTerm2, VS Code, Cursor, and Zed enlarge their text automatically, remembered per app
+- **Larger text (macOS)**: Ghostty, Terminal, iTerm2, VS Code, Cursor, and Zed enlarge their text automatically, remembered per app; Windows app compatibility is documented separately
 
 ### Native Gestures
 
@@ -66,21 +70,21 @@ UU Remote's mobile client carries over trackpad gesture conventions. On the phon
 
 | iPhone | Snug phone screen |
 | :--- | :--- |
-| App Library | The [App Library](#-app-library): the home page, for finding, opening, and managing the apps on your Mac |
+| App Library | The [App Library](#-app-library): the home page, for finding, opening, and managing the apps on your computer |
 | Home indicator | Bottom indicator bar, returning to the App Library |
 | "‹ Back" in the top-left corner | "‹ App name" in the top-left corner, returning to the current window |
 
 ### Screenshots
 
-Turn on Screenshot (「截图」) in Snug Settings and a camera button appears on the left of the bottom indicator bar. Tap it to capture the window filling the phone screen and copy it to the Mac's clipboard, ready to paste into any app. You get the window's native pixels, unaffected by remote image compression.
+Turn on Screenshot (「截图」) in Snug Settings and a camera button appears on the left of the bottom indicator bar. Tap it to capture the window filling the phone screen and copy it to the controlled computer's clipboard, ready to paste into any app. You get the window's native pixels, unaffected by remote image compression.
 
 - **Crop**: after a capture, a thumbnail appears in the bottom-left corner; tap it to crop. The whole image is selected by default — drag a corner or edge inward, then tap Done (「完成」) to replace the screenshot in the clipboard with the selection
-- **Permission**: requires the separate Screen & System Audio Recording permission (Screen Recording on macOS 14); click Authorize… (「授权…」) in Snug Settings, then reopen Snug when macOS asks. It is independent of the Accessibility permission
+- **macOS permission**: requires the separate Screen & System Audio Recording permission (Screen Recording on macOS 14); click Authorize… (「授权…」) in Snug Settings, then reopen Snug when macOS asks. It is independent of the Accessibility permission
 - **Off by default**: when it is off, the indicator bar shows no camera button and no recording permission is needed
 
 ## 📱 App Library
 
-The home page of the phone screen (「App 资源库」), for managing your Mac's apps from the phone: find, open, switch, create, close, and quit, without going back to your desk.
+The home page of the phone screen (「App 资源库」), for managing your computer's apps from the phone: find, open, switch, create, close, and quit, without going back to your desk.
 
 - **Running** (「运行中」): each running app has its own card, with its windows listed beneath it. Every window is here, whichever display or Space it's on, even full-screen or minimized
 - **All** (「全部」): a grid of every app on your Mac, sorted by name; tap an app that isn't running to launch it
@@ -101,7 +105,7 @@ The home page of the phone screen (「App 资源库」), for managing your Mac's
 
 ### Every App Works and Fills the Screen
 
-Snug brings the Mac's windows themselves to the phone screen, so every app works as it is, with no tie to any AI vendor: Claude Code in a terminal and Codex in the ChatGPT desktop app work just as they do at your desk.
+Snug brings the computer's windows themselves to the phone screen, so every app works as it is, with no tie to any AI vendor: Claude Code in a terminal and Codex in the ChatGPT desktop app work just as they do at your desk.
 
 Some apps enforce a minimum width and can't shrink to the phone screen. Snug first fits the window to the phone's width; if the app won't go any narrower, it switches the phone screen to a resolution just wide enough to hold it, then fills the screen again.
 
@@ -132,6 +136,8 @@ UU Remote scales the picture proportionally to fit the phone, leaving black bars
 
 ## 📦 Installation
 
+For Windows, see [Windows installation and usage](Platforms/Windows/README.en.md). The instructions below apply to macOS.
+
 > **Requirements**: macOS 14 or later, with [UU Remote](https://uuyc.163.com/) installed on the Mac being controlled. On the phone, only UU Remote is needed.
 
 **Download and install (recommended)**
@@ -142,7 +148,7 @@ UU Remote scales the picture proportionally to fit the phone, leaving black bars
 
 Snug then stays in the menu bar; no further setup is needed. Open Snug again at any time to bring up Settings.
 
-**Updates**: Snug checks at launch and installs new versions with one click, keeping your settings and permissions. You can also check manually or switch the update source on the About tab (「关于」). Versions before 2.1.0 must be replaced manually.
+**macOS updates**: Snug checks at launch and installs new versions with one click, keeping your settings and permissions. You can also check manually or switch the update source on the About tab (「关于」). Versions before 2.1.0 must be replaced manually.
 
 <div align="center">
 <img src="https://dl.zephyrxiang.com/snug/media/welcome.529d7d28.png" width="30%" alt="Welcome window"> <img src="https://dl.zephyrxiang.com/snug/media/settings-ready.a76a5b8c.png" width="30%" alt="Settings"> <img src="https://dl.zephyrxiang.com/snug/media/about.5534d9dc.png" width="30%" alt="About: version, software update, and update source">
@@ -170,6 +176,8 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 
 ## 🧭 Usage
 
+The original macOS walkthrough follows. Windows keeps the App Library and bottom return bar, using UU Remote's screen-touch mode; see the [Windows guide](Platforms/Windows/README.en.md) for session detection, restoration and screenshot differences.
+
 1. **Switch screens**: once a phone or tablet connects, choose "Snug 手机屏" (Snug Phone Screen) in UU Remote's screen list
 
    <img src="https://dl.zephyrxiang.com/snug/media/uu-screen-picker.212fdbe9.png" width="50%" alt="UU Remote's screen list, showing display 3: Snug Phone Screen">
@@ -181,6 +189,8 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 
 ## 🔒 Isolation and Restoration
 
+These are the original design principles. Windows uses platform-specific system adapters and recovery records; see its guide for verified coverage.
+
 - **Only the phone screen is touched**: the main display, other screens, and other windows are left alone; when you are not on the phone screen, UU Remote behaves exactly as it always has
 - **Record first, then change**: each window's original position and text size are recorded in advance, so they can be restored even if Snug quits unexpectedly
 - **Restored even when a window is closed directly**: if you close a window directly on your phone, the next time the app opens it at the phone-screen size, Snug moves it back and restores its text size
@@ -188,6 +198,8 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 - **No data collection**: apart from checking for updates, Snug connects to no servers and collects no data; screenshots only go to the Mac's clipboard and are not kept
 
 ## 🚧 Known Limitations
+
+See [Windows validation and limits](Platforms/Windows/README.en.md#validation-and-limitations) for device detection, driver modes and capture compatibility. The following table describes the original macOS implementation.
 
 | Limitation | Details |
 | :--- | :--- |
@@ -202,6 +214,9 @@ The technical reasons behind each limitation are explained in [How It Works](doc
 
 ## 🔧 Development
 
+- Windows: WPF / .NET 10, under [Platforms/Windows](Platforms/Windows/README.en.md), sharing the original phone model catalog.
+- macOS: the existing Swift / Xcode workflow is unchanged:
+
 ```bash
 scripts/snug check     # build and run all tests
 scripts/snug install   # build, install, and launch
@@ -212,6 +227,8 @@ scripts/snug install   # build, install, and launch
 - Connection detection, window placement, and gesture translation: [How It Works](docs/how-it-works.md) (in Chinese)
 
 ## 🧹 Uninstall
+
+Windows: quit Snug normally, then uninstall it in Windows Settings. Only Snug-managed virtual display driver resources are removed. The following instructions apply to macOS.
 
 1. Quit Snug from the menu bar (windows are restored first)
 2. Move Snug from Applications to the Trash
@@ -227,7 +244,9 @@ First and foremost, we extend our sincere respect to **[UU Remote](https://uuyc.
 
 With heartfelt thanks.
 
-We are equally grateful to the following projects and contributors:
+We are equally grateful to [zephyr4123](https://github.com/zephyr4123), the original Snug author, the original community contributors, and the following projects.
+
+Windows platform support additionally thanks [Virtual Display Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver) and [NefCon](https://github.com/nefarius/nefcon) (MIT); see [Windows third-party notices](Platforms/Windows/installer/THIRD_PARTY_NOTICES.md).
 
 - [UUyc-companion](https://github.com/aoyamashou/UUyc-companion) (MIT): by AoyamaShou, Snug's predecessor
 - [Better Remote](https://github.com/pincc-debug/better-remote) (MIT): by pincc-debug, the approach to one-finger scrolling in UU Remote

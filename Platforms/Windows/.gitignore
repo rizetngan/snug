@@ -1,0 +1,10 @@
+.tools/
+artifacts/
+**/bin/
+**/obj/
+**/TestResults/
+.vs/
+*.user
+*.suo
+*.log
+installer/vendor/

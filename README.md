@@ -6,7 +6,7 @@
 
 # Snug
 
-**让 Mac 在手机上拥有原生级的操作体验**
+**让 Mac 与 Windows 电脑在手机上拥有原生级的操作体验**
 
 为 UU远程 打造<br>竖屏原生显示 · 原生手势 · App 资源库 · 适配所有手机
 
@@ -23,6 +23,8 @@
 
 > 承接自 [aoyamashou/UUyc-companion](https://github.com/aoyamashou/UUyc-companion)（UU远程伴侣，作者 AoyamaShou，MIT 许可），完整保留原作者的版权声明与提交历史。2.0 起围绕「手机屏」重新设计。
 
+> **平台支持**：macOS 为原项目已发布平台；Windows 为在 Snug 2.5.0 基础上新增的社区贡献预览（0.2.33），保留原项目历史与功能设计，尚待上游审阅。下文功能细节与演示图以原版 macOS 为准；Windows 的安装、功能验证和限制见 [Windows 平台文档](Platforms/Windows/README.md)。
+
 ## 📥 下载
 
 <img src="Assets/AppIcon/AppIcon-1024.png" width="88" align="left" alt="Snug 图标">
@@ -36,11 +38,13 @@
 | **国内源** | 腾讯云 CDN 加速，中国大陆推荐 | [Snug.dmg](https://dl.zephyrxiang.com/snug/latest/Snug.dmg) |
 | **GitHub Releases** | 附更新说明、校验文件与历史版本 | [前往下载](https://github.com/zephyr4123/snug/releases/latest) |
 
-两个渠道提供的是同一个安装包。
+两个渠道提供的是同一个 macOS 安装包。
+
+**Snug for Windows（社区预览）** · Windows 10 22H2 x64 已验证；安装程序内置运行时与签名虚拟显示驱动。当前尚未纳入上游 Releases，请参阅 [Windows 构建与安装](Platforms/Windows/README.md)。
 
 ## ✨ 原生体验
 
-UU远程 将整块桌面等比压缩进手机屏幕，文字与控件随之缩小数倍。Snug 为手机增加一块专属竖屏，Mac 的窗口在其中以手机的尺度呈现，看起来、用起来都如同手机上的原生 App。
+UU远程 将整块桌面等比压缩进手机屏幕，文字与控件随之缩小数倍。Snug 为手机增加一块专属竖屏，电脑上的窗口在其中以手机的尺度呈现，看起来、用起来都如同手机上的原生 App。
 
 <p align="center"><img src="https://dl.zephyrxiang.com/snug/media/compare-uu-original.cf4158d1.png" width="36%" alt="UU远程 原版：整块桌面缩在手机屏幕里"> <img src="https://dl.zephyrxiang.com/snug/media/phone-claude-code.93e21d9d.png" width="36%" alt="搭配 Snug：窗口铺满整屏，字号放大"><br><sub>同一段内容 · 左：UU远程 原版 · 右：搭配 Snug</sub></p>
 
@@ -48,7 +52,7 @@ UU远程 将整块桌面等比压缩进手机屏幕，文字与控件随之缩�
 
 - **专属竖屏**：手机连接后，UU远程 的屏幕列表中多出一块「Snug 手机屏」，比例与手机一致，2 倍高清
 - **窗口铺满**：选中的窗口独占整屏
-- **字号放大**：Ghostty、终端、iTerm2、VS Code、Cursor、Zed 自动放大字号，按 App 分别记忆
+- **字号放大**（macOS）：Ghostty、终端、iTerm2、VS Code、Cursor、Zed 自动放大字号，按 App 分别记忆；Windows 的应用兼容情况见平台文档
 
 ### 原生手势
 
@@ -66,21 +70,21 @@ UU远程 手机端沿用触控板的手势逻辑；Snug 在手机屏上按手机
 
 | iPhone | Snug 手机屏 |
 | :--- | :--- |
-| App 资源库 | [App 资源库](#-app-资源库)：首页，查找、打开与管理 Mac 上的 App |
+| App 资源库 | [App 资源库](#-app-资源库)：首页，查找、打开与管理电脑上的 App |
 | 主屏幕指示条 | 底部指示条，返回 App 资源库 |
 | 左上角「‹ 返回」 | 左上角「‹ App 名」，返回当前窗口 |
 
 ### 截图
 
-在 Snug 设置中打开「截图」后，底部指示条左侧出现相机键。轻点即截下铺满手机屏的窗口，放入 Mac 的剪贴板，可在任意 App 中粘贴。截取的是窗口原画，不受远程画质压缩的影响。
+在 Snug 设置中打开「截图」后，底部指示条左侧出现相机键。轻点即截下铺满手机屏的窗口，放入被控电脑的剪贴板，可在任意 App 中粘贴。截取的是窗口原画，不受远程画质压缩的影响。
 
 - **裁剪**：截图后左下角浮出缩略图，轻点进入裁剪。默认选中整张，拖动四角或四边收窄，轻点「完成」后，以选中部分替换剪贴板中的截图
-- **权限**：需另行授予「录屏与系统录音」权限（macOS 14 为「屏幕录制」），在 Snug 设置中点按「授权…」，按系统提示重新打开 Snug 后生效；与辅助功能权限相互独立
+- **macOS 权限**：需另行授予「录屏与系统录音」权限（macOS 14 为「屏幕录制」），在 Snug 设置中点按「授权…」，按系统提示重新打开 Snug 后生效；与辅助功能权限相互独立
 - **默认关闭**：关闭时指示条上不显示相机键，也无需授予录屏权限
 
 ## 📱 App 资源库
 
-手机屏的首页，用于在手机上管理 Mac 的 App：查找、打开、切换、新建、关闭与退出，都不必回到电脑前。
+手机屏的首页，用于在手机上管理电脑的 App：查找、打开、切换、新建、关闭与退出，都不必回到电脑前。
 
 - **运行中**：正在运行的 App 各占一张卡片，窗口列在各自的 App 之下。窗口无论位于哪块屏幕、哪个桌面空间，处于全屏还是最小化，均可在此找到
 - **全部**：本机所有 App 的图标网格，按名称排序；尚未运行的 App 轻点即打开
@@ -101,7 +105,7 @@ UU远程 手机端沿用触控板的手势逻辑；Snug 在手机屏上按手机
 
 ### 任意 App 都能使用、完整铺满
 
-Snug 放上手机屏的是 Mac 上的窗口本身，任何 App 都能直接使用，不绑定任何一家 AI：终端里的 Claude Code、ChatGPT 桌面版里的 Codex，用起来与在电脑前一样。
+Snug 放上手机屏的是电脑上的窗口本身，任何 App 都能直接使用，不绑定任何一家 AI：终端里的 Claude Code、ChatGPT 桌面版里的 Codex，用起来与在电脑前一样。
 
 部分 App 限定了最小宽度，无法缩到手机屏的宽度。Snug 先按手机宽度铺开窗口；App 不允许再窄时，将手机屏切换到恰好容纳它的分辨率，再次铺满。
 
@@ -132,6 +136,8 @@ UU远程 将画面等比缩放后放进手机，比例不符时会留下黑边�
 
 ## 📦 安装
 
+Windows 请参阅 [Windows 安装与使用](Platforms/Windows/README.md)；以下为 macOS 安装流程。
+
 > **系统要求**：macOS 14 或更新版本，被远程的 Mac 已安装 [UU远程](https://uuyc.163.com/)。手机端只需 UU远程。
 
 **下载安装（推荐）**
@@ -142,7 +148,7 @@ UU远程 将画面等比缩放后放进手机，比例不符时会留下黑边�
 
 完成后 Snug 常驻菜单栏，此后无需任何操作。需要查看状态时，再次打开 Snug 即弹出设置。
 
-**更新**：启动时自动检查，有新版本时一键更新，设置与授权保留；也可在「关于」页手动检查或切换更新源。2.1.0 之前的版本请手动下载替换。
+**macOS 更新**：启动时自动检查，有新版本时一键更新，设置与授权保留；也可在「关于」页手动检查或切换更新源。2.1.0 之前的版本请手动下载替换。
 
 <div align="center">
 <img src="https://dl.zephyrxiang.com/snug/media/welcome.529d7d28.png" width="30%" alt="欢迎页"> <img src="https://dl.zephyrxiang.com/snug/media/settings-ready.a76a5b8c.png" width="30%" alt="设置"> <img src="https://dl.zephyrxiang.com/snug/media/about.5534d9dc.png" width="30%" alt="关于：版本、软件更新与更新源">
@@ -170,6 +176,8 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 
 ## 🧭 使用方式
 
+以下为原版 macOS 操作示例。Windows 沿用 App 资源库与底部返回交互，使用 UU 屏幕触控模式；会话识别、恢复与截图权限差异见 [Windows 文档](Platforms/Windows/README.md)。
+
 1. **切换屏幕**：手机或平板连接后，在 UU远程 的屏幕列表中选择「Snug 手机屏」
 
    <img src="https://dl.zephyrxiang.com/snug/media/uu-screen-picker.212fdbe9.png" width="50%" alt="UU远程 的屏幕列表：显示屏 3（Snug 手机屏）">
@@ -181,6 +189,8 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 
 ## 🔒 隔离与还原
 
+以下为原版的设计原则；Windows 采用独立的平台接口与窗口恢复账本，实际验证范围见 Windows 平台文档。
+
 - **只改动手机屏**：不更改主显示器，不关闭任何屏幕，不触碰其他窗口；不切换至手机屏时，UU远程 与原版完全一致
 - **先记录，后改动**：窗口的原始位置与字号先行记录，Snug 意外退出后也能还原
 - **窗口被直接关掉也能还原**：在手机上直接关掉的窗口，App 下次带着手机屏上的大小打开时，自动放回原位、缩回字号
@@ -188,6 +198,8 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 - **不收集数据**：除检查更新外不连接任何服务器，不收集任何数据；截图只放入本机剪贴板，不留存
 
 ## 🚧 已知限制
+
+Windows 预览版的设备识别、驱动模式及截图兼容性见 [Windows 已知限制](Platforms/Windows/README.md#已验证与限制)。以下为原版 macOS 的限制。
 
 | 限制 | 说明 |
 | :--- | :--- |
@@ -202,6 +214,9 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 
 ## 🔧 开发
 
+- Windows：WPF / .NET 10，平台实现位于 [Platforms/Windows](Platforms/Windows/README.md)，共用原项目手机型号数据。
+- macOS：原有 Swift / Xcode 构建流程保持不变：
+
 ```bash
 scripts/snug check     # 构建并运行全部测试
 scripts/snug install   # 构建、安装并打开
@@ -212,6 +227,8 @@ scripts/snug install   # 构建、安装并打开
 - 连接判定、窗口移动与手势翻译：[工作原理](docs/how-it-works.md)
 
 ## 🧹 卸载
+
+Windows：先正常退出 Snug，再从 Windows 已安装应用中卸载；仅清理 Snug 管理的虚拟显示驱动。以下为 macOS 卸载方法。
 
 1. 在菜单栏中退出 Snug（窗口会先还原）
 2. 将「应用程序」中的 Snug 移到废纸篓
@@ -227,7 +244,9 @@ scripts/snug install   # 构建、安装并打开
 
 谨此致谢。
 
-亦感谢以下项目与贡献者：
+亦感谢原作者 [zephyr4123](https://github.com/zephyr4123)、原项目社区贡献者，以及以下项目：
+
+Windows 平台另感谢 [Virtual Display Driver](https://github.com/VirtualDrivers/Virtual-Display-Driver) 与 [NefCon](https://github.com/nefarius/nefcon)（MIT）。详细第三方许可见 [Windows notices](Platforms/Windows/installer/THIRD_PARTY_NOTICES.md)。
 
 - [UUyc-companion](https://github.com/aoyamashou/UUyc-companion)（MIT）：AoyamaShou，Snug 的前身
 - [Better Remote](https://github.com/pincc-debug/better-remote)（MIT）：pincc-debug，为 UU远程 实现单指滚动的思路

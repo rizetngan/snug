@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <SnugFrameworkCsc Condition="Exists('$(WINDIR)\Microsoft.NET\Framework64\v4.0.30319\csc.exe')">$(WINDIR)\Microsoft.NET\Framework64\v4.0.30319\csc.exe</SnugFrameworkCsc>
+    <SnugFrameworkCsc Condition="'$(SnugFrameworkCsc)' == '' and Exists('$(WINDIR)\Microsoft.NET\Framework\v4.0.30319\csc.exe')">$(WINDIR)\Microsoft.NET\Framework\v4.0.30319\csc.exe</SnugFrameworkCsc>
+  </PropertyGroup>
+
+  <Target Name="BuildSnugCscBridge"
+          BeforeTargets="CoreCompile"
+          Condition="'$(SnugUseLegacyWindowsCETWorkaround)' == 'true'"
+          Inputs="$(MSBuildThisFileDirectory)tools\Snug.CscBridge.cs"
+          Outputs="$(MSBuildThisFileDirectory).tools\csc-bridge\Snug.CscBridge.exe">
+    <Error Condition="'$(SnugFrameworkCsc)' == ''"
+           Text="Snug needs the Windows .NET Framework C# compiler to bootstrap its local .NET 10 compiler bridge." />
+    <MakeDir Directories="$(MSBuildThisFileDirectory).tools\csc-bridge" />
+    <Exec Command="&quot;$(SnugFrameworkCsc)&quot; /nologo /target:exe /platform:anycpu /optimize+ /out:&quot;$(MSBuildThisFileDirectory).tools\csc-bridge\Snug.CscBridge.exe&quot; &quot;$(MSBuildThisFileDirectory)tools\Snug.CscBridge.cs&quot;" />
+  </Target>
+</Project>
