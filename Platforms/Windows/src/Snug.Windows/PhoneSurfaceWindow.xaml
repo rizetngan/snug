@@ -439,8 +439,20 @@
                             </Button>
                             <Border x:Name="NoticeBanner" Visibility="Collapsed"
                                     Background="#FFF4DD" CornerRadius="12" Padding="12" Margin="0,12,0,0">
-                                <TextBlock x:Name="NoticeText" FontSize="16" Foreground="#805000"
-                                           TextWrapping="Wrap" TextTrimming="None"/>
+                                <StackPanel>
+                                    <TextBlock x:Name="NoticeText" FontSize="16" Foreground="#805000"
+                                               TextWrapping="Wrap" TextTrimming="None"/>
+                                    <StackPanel x:Name="ForceQuitActions" Visibility="Collapsed"
+                                                Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                                        <Button Style="{StaticResource InlineCancel}" Margin="0,0,12,0"
+                                                Click="DismissQuitStalled_Click" AutomationProperties.Name="取消强制退出">
+                                            <TextBlock Text="取消" Foreground="#17171A" FontWeight="Medium"/>
+                                        </Button>
+                                        <Button x:Name="ForceQuitButton" Style="{StaticResource InlineDestructive}"
+                                                Content="强制退出" Click="ForceQuit_Click"
+                                                AutomationProperties.Name="强制退出 App"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </Border>
                             <!-- Upstream PhoneHomeView places this confirmation in the header. -->
                             <Border x:Name="DismissPhoneBanner" Visibility="Collapsed"

@@ -118,7 +118,11 @@ public partial class PhoneSurfaceWindow : Window
         if (IsPreview && e.PropertyName == nameof(AppController.CurrentPhoneChoice))
             Dispatcher.BeginInvoke(UpdatePreviewCanvas);
 
+        if (e.PropertyName == nameof(AppController.QuitStalled) && _controller.QuitStalled is not null)
+            Dispatcher.BeginInvoke(() => { RefreshLists(); HomeScroll.ScrollToTop(); });
+
         if (e.PropertyName is nameof(AppController.ActivityStatus)
+            or nameof(AppController.QuitStalled)
             or nameof(AppController.PlacedWindowKey)
             or nameof(AppController.PlacedAppName)
             or nameof(AppController.IsAppCatalogLoaded))
@@ -168,8 +172,13 @@ public partial class PhoneSurfaceWindow : Window
             || status.Contains("无法", StringComparison.Ordinal)
             || status.Contains("无响应", StringComparison.Ordinal)
             || status.Contains("尚未恢复", StringComparison.Ordinal);
-        NoticeText.Text = showNotice ? status : string.Empty;
-        NoticeBanner.Visibility = showNotice ? Visibility.Visible : Visibility.Collapsed;
+        var stalled = IsPreview ? null : _controller.QuitStalled;
+        NoticeText.Text = stalled is not null
+            ? $"{stalled.AppName} 尚未退出。强制退出将丢失未保存的内容。"
+            : showNotice ? status : string.Empty;
+        NoticeBanner.Visibility = showNotice || stalled is not null ? Visibility.Visible : Visibility.Collapsed;
+        ForceQuitActions.Visibility = stalled is not null ? Visibility.Visible : Visibility.Collapsed;
+        ForceQuitButton.Tag = stalled;
 
         RefreshSearch();
         UpdateTabs();
@@ -349,6 +358,14 @@ public partial class PhoneSurfaceWindow : Window
     }
 
     private void CancelConfirm_Click(object sender, RoutedEventArgs e) => ClearConfirmation();
+
+    private void DismissQuitStalled_Click(object sender, RoutedEventArgs e) => _controller.DismissQuitStalled();
+
+    private async void ForceQuit_Click(object sender, RoutedEventArgs e)
+    {
+        if (IsPreview || (sender as FrameworkElement)?.Tag is not QuitStalledNotice notice) return;
+        await WithBusyAsync($"正在强制退出 {notice.AppName}", () => _controller.ForceQuitAsync(notice));
+    }
 
     private async void ConfirmQuitInline_Click(object sender, RoutedEventArgs e)
     {

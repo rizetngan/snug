@@ -327,6 +327,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         SyncCollection(RunningApps, _appCatalog.RefreshRunning(next), app => app.ProcessId);
         OnPropertyChanged(nameof(WindowCountText));
         OnPropertyChanged(nameof(RunningAppCountText));
+        if (QuitStalled is { } notice &&
+            !notice.CanForce(QuitProcess.Observe(notice.Identity.ProcessId), DateTimeOffset.UtcNow))
+            DismissQuitStalled();
     }
 
     private async Task LoadInstalledAppsAsync()
@@ -567,6 +570,39 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _ => "窗口仍未关闭；应用可能正在等待内部确认。"
         };
     }
+    private QuitStalledNotice? _quitStalled;
+    public QuitStalledNotice? QuitStalled
+    {
+        get => _quitStalled;
+        private set => Set(ref _quitStalled, value);
+    }
+
+    public void DismissQuitStalled() => QuitStalled = null;
+
+    public Task ForceQuitAsync(QuitStalledNotice notice) => _actionLane.RunAsync(async () =>
+    {
+        if (_disposed || _previewOpen || QuitStalled != notice) return;
+        if (!notice.CanForce(QuitProcess.Observe(notice.Identity.ProcessId), DateTimeOffset.UtcNow))
+        {
+            DismissQuitStalled();
+            return;
+        }
+        // Do not destroy a placed window whose original state is still owed,
+        // nor an app that has subsequently opened its own confirmation dialog.
+        if (PlacedWindowKey?.ProcessId == notice.Identity.ProcessId ||
+            _windowManager.FindAskingWindow((uint)notice.Identity.ProcessId) is not null)
+        {
+            DismissQuitStalled();
+            ActivityStatus = "App 有待处理的窗口，暂不能强制退出";
+            return;
+        }
+
+        DismissQuitStalled();
+        var success = await Task.Run(() => QuitProcess.TryForce(notice));
+        RefreshWindows();
+        ActivityStatus = success ? $"已强制退出：{notice.AppName}" : $"无法强制退出：{notice.AppName}";
+    });
+
     public Task QuitAppAsync(RunningApp app, bool preview) =>
         _actionLane.RunAsync(() => QuitAppCoreAsync(app, preview));
 
@@ -578,7 +614,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             return;
         }
 
-        if (!AppList.CanQuit(app.App))
+        DismissQuitStalled();
+        if (!AppList.CanQuit(app.App) || AppList.IsExcluded(app.App))
         {
             ActivityStatus = $"{app.App.Name} 不支持从资源库退出";
             return;
@@ -595,6 +632,14 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 return;
             }
         }
+
+        // Record identity before sending normal close requests. A stale PID
+        // cannot later authorize force-quit of a newly launched app.
+        var identity = QuitProcess.Observe(app.ProcessId);
+        if (identity is not null && !app.Windows.Any(window =>
+            window.Key.ProcessId == app.ProcessId &&
+            StringComparer.OrdinalIgnoreCase.Equals(window.ExecutablePath, identity.ExecutablePath)))
+            identity = null;
 
         var requested = 0;
         foreach (var window in app.Windows)
@@ -613,7 +658,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             }
         }
 
-        if (requested == 0)
+        if (requested == 0 && !app.Windows.Any(window =>
+            _windowManager.IsAlive(window.Key) && !_windowManager.IsResponsive(window.Key)))
         {
             ActivityStatus = $"无法向 {app.App.Name} 发送退出请求";
             return;
@@ -623,12 +669,19 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var observation = await ObserveExitAsync((uint)app.ProcessId,
             () => ProcessHasExited(app.ProcessId), TimeSpan.FromSeconds(10));
         RefreshWindows();
+        if (observation == ExitObservation.TimedOut && identity is not null &&
+            identity.Matches(QuitProcess.Observe(app.ProcessId)) &&
+            PlacedWindowKey?.ProcessId != app.ProcessId &&
+            _windowManager.FindAskingWindow((uint)app.ProcessId) is null)
+        {
+            QuitStalled = new(app.App.Name, identity, DateTimeOffset.UtcNow.AddMinutes(2));
+        }
         ActivityStatus = observation switch
         {
             ExitObservation.Finished => $"已退出：{app.App.Name}",
             ExitObservation.Asking => "请在手机屏处理应用的保存提示。",
             ExitObservation.FailedToPresent => "发现应用确认弹窗，但暂时无法移到手机屏。",
-            _ => $"{app.App.Name} 尚未退出；不会强制结束进程。"
+            _ => $"{app.App.Name} 尚未退出。"
         };
     }
     private async Task OpenAppAsync(AppInfo app)
