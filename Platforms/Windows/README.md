@@ -1,104 +1,54 @@
 # Snug for Windows
 
-将 [zephyr4123/snug](https://github.com/zephyr4123/snug) 的手机工作区体验移植到 Windows，配合 iPhone 上的 UU 远程使用。
+Windows 平台移植，基于 [Snug](https://github.com/zephyr4123/snug) 2.5.0 (MIT)，保留原项目及其 macOS 构建。Windows 0.2.32 是独立验证版本，尚未获得上游发布。
 
-## 当前实现
+## 使用
 
-- WPF 桌面端，深色 Snug 视觉风格，托盘常驻与单实例运行
-- 只读检测 UU 远程会话：观察 GameViewerServer 的 controlled 会话日志句柄
-- 连接时创建独立竖屏显示器「Snug Phone」，断开时移除设备节点
-- 窗口列表、窗口搬运、原位置/最大化/最小化状态恢复
-- 底部返回条、左上角 App 返回入口、触控手势与字号放大
-- 终端和编辑器字号按应用独立记忆，手机屏顶部可直接调节 A− / A+
-- 中断恢复记录，避免窗口被移动后因异常退出而丢失原位置
-- 不轮询 uuyc-cli，不修改 UU 原有配置
+1. 安装 Windows x64 版本的 UU 远程，以及 Snug 安装程序。首次安装需要正常的管理员授权，用于部署官方签名虚拟显示驱动。
+2. 手机通过 UU 连接电脑，在屏幕列表切换到 Snug Phone，使用屏幕触控模式。
+3. 在资源库查找、打开 App 或选择已有窗口；底部返回条回到资源库。窗口铺屏、滚动、长按及字号操作由 Snug 处理。
+4. 可在设置打开截图（默认关闭）。进入 App 后点底部相机，复制当前窗口图片；点预览可以裁剪后再次复制。
+5. 当前 Windows UU 会话信息不可读取时，设置显示“UU 兼容模式 · 设备未知”。兼容模式仍允许手机屏，不代表确认了入站连接、设备类型或实际推流屏幕。结束远程后若手机屏未自动释放，可在设置关闭手机屏或正常退出 Snug，以恢复窗口。
 
-## 显示驱动
+## 构建与打包
 
-首次安装会自动安装官方签名的 Virtual Display Driver（VDD 25.7.23），并使用 NefCon 1.21.1 管理驱动包与虚拟设备节点。
+依赖：Windows x64（Windows 10 22H2 已实测），.NET SDK 10.0.404（global.json 允许同 feature band 的较新补丁），NuGet 还原所需网络；打包还需 Windows Desktop Runtime 10.0.15 与 Inno Setup 7。首次安装需要管理员权限，编译和纯逻辑测试不需要。
 
-- 安装阶段只预装驱动包，不常驻创建空白显示器
-- UU 会话开始时，通过两个固定的 SYSTEM 计划任务创建 Snug Phone 设备节点
-- UU 会话结束时移除设备节点，驱动包保留，避免每次连接重复安装
-- 计划任务只允许启动/移除固定的 Root\MttVDD 设备，不接受任意命令参数
-- 卸载时只清理 Snug ownership marker 标记为 Snug 管理的驱动；不会接管或删除外部安装的 VDD
-- 显示规格：1080 × 1900，60 Hz，EDID 名称 Snug Phone
+从仓库根目录进入 Platforms/Windows：
 
-驱动安装日志：%ProgramData%\Snug\Logs\driver-install.log
+    cd Platforms\Windows
+    build-snug.cmd
+    run-snug.cmd
 
-第三方许可证与驱动来源见 installer/THIRD_PARTY_NOTICES.md。
+脚本按顺序选择 SNUG_DOTNET_ROOT、项目 .tools/dotnet、DOTNET_ROOT、标准 Program Files/dotnet。非标准 SDK 路径可通过 **当前终端** 环境变量指定。编译器桥使用相同 SDK resolver 和 global.json；不会修改系统 CET 策略或 SDK 二进制。
 
-## 安装
+PowerShell 示例：
 
-运行 package-snug.cmd。
+    $env:SNUG_DOTNET_ROOT = 'C:\Program Files\dotnet'
+    $env:SNUG_ISCC = 'C:\Program Files (x86)\Inno Setup 7\ISCC.exe'
+    .\build-snug.cmd
+    .\package-snug.cmd
 
-生成安装程序：
+输出：artifacts/installer/Snug-Setup-0.2.32-x64.exe。安装包内置指定 .NET runtime，无需目标电脑另外安装 SDK。驱动分发许可、版本及校验见 installer/THIRD_PARTY_NOTICES.md；安装器本身尚未签名。支持 CET 的系统可用 -p:SnugUseLegacyWindowsCETWorkaround=false 使用 SDK 原生编译路径。
 
-artifacts/installer/Snug-Setup-0.2.7-x64.exe
+## 架构
 
-安装程序内置 .NET 10 Windows Desktop Runtime，不要求目标电脑预装 .NET。安装器以管理员权限运行，并在安装阶段自动部署官方签名 VDD；安装完成后启动 Snug。
+- Snug.Windows.Core：独立的窗口/恢复账本、手机尺寸与适配、触控翻译、菜单惯性、UU 会话状态及截图裁剪几何，不依赖 WPF。
+- Snug.Windows：WPF 设置及手机界面，Win32 窗口/两轴输入、虚拟显示器管理、UU 只读观察、原像素窗口截图。
+- installer：固定版本签名 VDD 25.7.23 和 NefCon 1.21.1；仅操作 Snug 管理的设备节点，驱动包保留。第三方 MIT 许可随安装包分发。
 
-支持 Windows 10 1903 及以上 x64 系统。
+## 已验证与限制
 
-## 开发
+- 224 项核心测试通过；真实 Windows 测试涵盖窗口搬运/恢复、VS Code 跨进程字号恢复、Chrome 标签及双轴滚动、资源库拖动、强制退出、独立窗口截图和裁剪。
+- 菜单惯性经过真实 WPF 定时器测试；完整实机手势及真实剪贴板写入尚待验收。实际手机端仍需要一轮完整检查。
+- Windows 使用固定的 VDD 支持模式，动态宽度步长为 20 点；多物理屏恢复、部分应用字号、跨虚拟桌面、GPU/受保护窗口的截图兼容仍待测试。
+- Windows UU 版本的辅助功能、官方 CLI 和日志尚不能稳定暴露入站设备类型、推流屏幕和真实断开。日志仅作为显式兼容模式，不做设备身份或推流状态的确认。
+- 自动更新不在本次移植范围。本分支不是官方 Windows 发布，也不是与 macOS 完全等效的宣称。
 
-运行 build-snug.cmd 编译与测试，运行 run-snug.cmd 启动开发版本。
+## 测试
 
-也可以分别执行 dotnet restore、dotnet test -c Release、dotnet build -c Release。
+    dotnet test Snug.Windows.sln -c Release
 
-## Windows 10 CET 兼容处理
+使用非默认 SDK 时先设置 SNUG_DOTNET_ROOT；测试/构建脚本可直接使用相同路径。PhoneUiSmoke.ps1 支持独立 UI 预览（不等同于真实手机验收）；CapturePhoneVdd.ps1 通过 PMv2 获取真实物理像素；MenuDragProbe 支持 --programmatic 进行不抢占鼠标的惯性定时器验证。探测 UU 的工具 Probe-UuLocalController.ps1 仅用于本地只读诊断。
 
-当前开发机是 Windows 10 22H2 Build 19045。为避免修改系统级安全策略或篡改 Microsoft 签名的 SDK 文件：
-
-- 保留 .NET 10 SDK、Roslyn 与 .NET 10 目标框架
-- 使用 C# bridge，通过 dotnet host 启动 SDK 编译器
-- Snug 主程序以 DLL 方式运行，不生成 CET-marked apphost
-- 安装包使用独立的 Win32 GUI launcher 隐藏启动本地 .NET host，避免出现控制台窗口
-
-Windows 更新到完整支持 CET 的版本后，可用 -p:SnugUseLegacyWindowsCETWorkaround=false 关闭兼容层。
-
-## 原版与移植边界
-
-原版 Snug 的 MIT 版权声明保留在根目录 LICENSE。Windows 版本重新实现显示器、窗口、输入钩子和 UU 感知，不调用 macOS 私有 API。
-
-## 当前验证
-
-- Release 编译：通过，0 warning / 0 error
-- 核心测试：17/17 通过，包含 UU 会话持续计时、每 App 字号记忆/设置恢复、应用名回退
-- 安装包：0.2.7 已安装验证；SHA-256 与下载目录副本一致
-- 打包运行时：独立 .NET 10 runtime；安装包内置运行时
-- VDD 与 NefCon：官方包 SHA-256 与数字签名已核验
-- 0.2.2：驱动绑定、1080 × 1900 / 60 Hz 手机屏、普通用户启停、设备移除实机通过
-- 0.2.3：修复 UU 持续会话反复重置自动创建等待时间，自动创建实机通过
-- 0.2.5：窗口列表全宽布局与按钮模板修正，原生分辨率截图验收通过
-- 0.2.6：左上角 App 返回入口、每 App 字号记忆、手机屏内 A− / A+ 控件；记事本搬运、返回列表、退出恢复原位验收通过
-- 0.2.7 已安装：补齐应用名缺失时的字号识别，支持 Antigravity；检测无响应窗口，不强制搬运或恢复并保留还原记录；Cursor A+/A− 与切换应用后字号记忆实机通过
-- 真实 1080 × 1900 手机屏已验证：窗口列表、窗口搬运、左上角返回、底部返回条
-- 待完成：Windows 自动更新发布源/差量更新；真实 iPhone UU 端到端操作验收
-
-## UU 远程使用
-
-1. 电脑安装 Snug for Windows，并保持 UU 远程客户端运行；Snug 在后台托盘常驻。
-2. iPhone 只需安装 UU 远程，不需要安装 Snug；使用同一 UU 账号连接电脑。
-3. 在 iPhone 的 UU 远程屏幕列表中选择「Snug Phone」。
-4. 点选窗口后窗口铺满手机屏；左上角「‹ App」或底部指示条返回窗口列表。
-5. 选择另一个窗口时，前一个窗口自动归位；结束 UU 远程后，窗口位置和字号恢复，Snug Phone 自动移除。
-
-Windows 版与原版功能映射：
-
-- 已实现：独立手机屏、窗口列表/铺满、底部返回、左上角 App 返回、UU 会话自动创建/关闭、单指滚动/惯性、长按拖选/右键、按 App 记忆字号、托盘常驻、开机启动、异常恢复。
-- 待完成：Windows 版自动更新发布通道；真实 iPhone + UU 远程端到端验收。
-
-原版 Snug 的核心交互以「连接 UU → 切换 Snug Phone → 选择窗口 → 左上角或底部返回窗口列表 → 结束远程自动恢复」为主线。
-### DPI-correct live phone-screen screenshot
-
-Use `tests/CapturePhoneVdd.ps1` to capture the **real Windows VDD in physical pixels**.
-The screenshot process must become Per-Monitor-DPI-Aware V2 before reading secondary-monitor bounds.
-Otherwise a 1080x1834 monitor reported as 720x1223 at 150% scaling looks incorrectly cropped.
-For example:
-
-```powershell
-& .\tests\CapturePhoneVdd.ps1 -OutputPath 'F:\snug for Windows\diagnostics\SnugPhone.png'
-```
-
-Running installed-version checks and in-app visual regression checks are separate from normal portable-preview tests.
+MIT 许可和上游版权保留，macOS 原有源码不需要改动。

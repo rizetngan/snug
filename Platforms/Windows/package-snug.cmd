@@ -1,10 +1,16 @@
 @echo off
 setlocal
 set "SNUG_ROOT=%~dp0"
-set "DOTNET_ROOT=%SNUG_ROOT%.tools\dotnet"
+cd /d "%SNUG_ROOT%"
+call "%SNUG_ROOT%tools\Resolve-Dotnet.cmd"
+if errorlevel 1 exit /b %errorlevel%
 set "PACKAGE=%SNUG_ROOT%artifacts\package"
 set "BUILD_OUTPUT=%SNUG_ROOT%artifacts\release-build"
 set "RUNTIME_VERSION=10.0.15"
+if not exist "%DOTNET_ROOT%\shared\Microsoft.WindowsDesktop.App\%RUNTIME_VERSION%\PresentationFramework.dll" (
+  echo Packaging requires Windows Desktop Runtime %RUNTIME_VERSION% in the selected SDK directory.
+  exit /b 1
+)
 set "CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 
 rem Use a dedicated build directory so an open Snug preview cannot lock packaging DLLs.
@@ -55,7 +61,9 @@ if not exist "%CSC%" (
 if errorlevel 1 exit /b %errorlevel%
 
 if not exist "%SNUG_ROOT%artifacts\installer" mkdir "%SNUG_ROOT%artifacts\installer"
-set "ISCC=%SNUG_ROOT%.tools\innosetup7\ISCC.exe"
+set "ISCC=%SNUG_ISCC%"
+if not defined ISCC set "ISCC=%SNUG_ROOT%.tools\innosetup7\ISCC.exe"
+if not exist "%ISCC%" set "ISCC=%ProgramFiles(x86)%\Inno Setup 7\ISCC.exe"
 if not exist "%ISCC%" set "ISCC=%SNUG_ROOT%..\..\..\..\.tools\innosetup7\ISCC.exe"
 if not exist "%ISCC%" (
   echo Inno Setup compiler not found. Install the official Inno Setup compiler before packaging.

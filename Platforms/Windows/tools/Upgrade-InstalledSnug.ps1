@@ -2,13 +2,15 @@
     [Parameter(Mandatory=$true)][string]$InstallerPath,
     [Parameter(Mandatory=$true)][string]$ExpectedSha256,
     [string]$LedgerPath = "",
+    [string]$DiagnosticsPath = "",
     [switch]$Preflight
 )
 
 $ErrorActionPreference = 'Stop'
 $expectedVersion = [regex]::Match([IO.Path]::GetFileName($InstallerPath), 'Snug-Setup-(\d+\.\d+\.\d+)-x64\.exe$').Groups[1].Value
 if ([string]::IsNullOrEmpty($expectedVersion)) { throw 'Unexpected Snug installer filename.' }
-$diagnostics = 'F:\snug for Windows\diagnostics'
+if ([string]::IsNullOrWhiteSpace($DiagnosticsPath)) { $DiagnosticsPath = Join-Path $env:LOCALAPPDATA 'Snug\diagnostics' }
+$diagnostics = [IO.Path]::GetFullPath($DiagnosticsPath)
 New-Item -ItemType Directory -Path $diagnostics -Force | Out-Null
 $log = Join-Path $diagnostics ("UPGRADE_INSTALLED_" + $expectedVersion + ".log")
 function Write-Audit([string]$message) {
@@ -21,7 +23,7 @@ $installer = [IO.Path]::GetFullPath($InstallerPath)
 if (!(Test-Path -LiteralPath $installer -PathType Leaf)) { throw 'Installer is missing.' }
 $actualHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
 if ($actualHash -ine $ExpectedSha256) { throw 'Installer checksum does not match; refusing upgrade.' }
-$installedDll = 'C:\Program Files\Snug\Snug.Windows.dll'
+$installedDll = Join-Path $env:ProgramFiles 'Snug\Snug.Windows.dll'
 $installedBefore = if (Test-Path -LiteralPath $installedDll) { (Get-Item $installedDll).VersionInfo.ProductVersion } else { 'absent' }
 if ([string]::IsNullOrEmpty($LedgerPath)) { $LedgerPath = Join-Path $env:LOCALAPPDATA 'Snug\phone-screen.json' }
 $ledger = [IO.Path]::GetFullPath($LedgerPath)
@@ -44,7 +46,7 @@ if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     # current phone-screen session unchanged. Only an elevated child can exit it.
     $args = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath +
         '" -InstallerPath "' + $installer + '" -ExpectedSha256 ' + $ExpectedSha256 +
-        ' -LedgerPath "' + $ledger + '"'
+        ' -LedgerPath "' + $ledger + '" -DiagnosticsPath "' + $diagnostics + '"'
     Write-Audit 'Requesting standard Windows UAC approval. Existing Snug remains running until consent.'
     Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $args
     exit 0

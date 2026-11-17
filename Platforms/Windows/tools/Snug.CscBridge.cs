@@ -7,7 +7,7 @@ using System.Text;
 internal static class SnugCscBridge
 {
     private static readonly string ProjectRoot = GetProjectRoot();
-    private static readonly string DotnetRoot = Path.Combine(ProjectRoot, ".tools", "dotnet");
+    private static readonly string DotnetRoot = ResolveDotnetRoot();
     private static readonly string DotnetHost = Path.Combine(DotnetRoot, "dotnet.exe");
     private static readonly string CompilerRoot = Path.Combine(DotnetRoot, "sdk", GetSdkVersion(), "Roslyn", "bincore");
     private static readonly string CompilerDll = Path.Combine(CompilerRoot, "csc.dll");
@@ -68,23 +68,38 @@ internal static class SnugCscBridge
         return Directory.GetParent(toolsDirectory).FullName;
     }
 
+    private static string ResolveDotnetRoot()
+    {
+        var configured = Environment.GetEnvironmentVariable("SNUG_DOTNET_ROOT");
+        if (!string.IsNullOrWhiteSpace(configured)) return configured;
+        var local = Path.Combine(ProjectRoot, ".tools", "dotnet");
+        if (File.Exists(Path.Combine(local,"dotnet.exe"))) return local;
+        configured = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+        if (!string.IsNullOrWhiteSpace(configured)) return configured;
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),"dotnet");
+    }
+
     private static string GetSdkVersion()
     {
-        var globalJson = Path.Combine(ProjectRoot, "global.json");
-        if (File.Exists(globalJson))
+        // The SDK resolver honors global.json including latestPatch. Use
+        // the same host and repository directory as the invoking build.
+        using (var process = Process.Start(new ProcessStartInfo
         {
-            var content = File.ReadAllText(globalJson);
-            var token = "\"version\"";
-            var tokenIndex = content.IndexOf(token, StringComparison.Ordinal);
-            if (tokenIndex >= 0)
-            {
-                var valueStart = content.IndexOf('"', tokenIndex + token.Length);
-                var valueEnd = valueStart < 0 ? -1 : content.IndexOf('"', valueStart + 1);
-                if (valueStart >= 0 && valueEnd > valueStart)
-                    return content.Substring(valueStart + 1, valueEnd - valueStart - 1);
-            }
+            FileName = DotnetHost, Arguments = "--version",
+            WorkingDirectory = ProjectRoot, UseShellExecute = false,
+            CreateNoWindow = true, RedirectStandardOutput = true,
+            RedirectStandardError = true
+        }))
+        {
+            if (process == null) throw new InvalidOperationException("Cannot resolve .NET SDK.");
+            var output = process.StandardOutput.ReadToEndAsync();
+            var error = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            var version = output.Result.Trim();
+            if (process.ExitCode != 0 || !System.Text.RegularExpressions.Regex.IsMatch(version, @"^\d+\.\d+\.\d+$"))
+                throw new InvalidOperationException("Cannot resolve pinned .NET SDK: " + error.Result);
+            return version;
         }
-        return "10.0.404";
     }
 
     private static string Quote(string value)

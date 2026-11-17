@@ -1,7 +1,9 @@
 @echo off
 setlocal
 set "SNUG_ROOT=%~dp0"
-set "DOTNET_ROOT=%SNUG_ROOT%.tools\dotnet"
+cd /d "%SNUG_ROOT%"
+call "%SNUG_ROOT%tools\Resolve-Dotnet.cmd"
+if errorlevel 1 exit /b %errorlevel%
 if not exist "%DOTNET_ROOT%\dotnet.exe" (
   echo Local .NET 10 runtime was not found.
   exit /b 1
