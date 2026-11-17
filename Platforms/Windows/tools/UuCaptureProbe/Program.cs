@@ -36,7 +36,11 @@ internal static class Program
             using(p){try{known[p.Id]=p.StartTime.ToUniversalTime();}catch{}}
         }
         var counts = new Dictionary<string,int>();
-        var contexts = new Dictionary<ulong,int>();
+        var contexts = new Dictionary<ulong,(int Ordinal,int Owner,int Adapter,ulong Source,DateTime LastReport,int Frames)>();
+        var adapters = new Dictionary<(int Pid,ulong Handle),int>();
+        var diagnostics = new Dictionary<(int Pid,ulong Log,ulong Index),int>();
+        var observed = new Dictionary<int,long>();
+        int nextDiagnostic = 0;
         int nextContext=0,unattributed=0,dropped=0;
         bool TryNumber(TraceEvent e,string field,out ulong value)
         {
@@ -61,18 +65,69 @@ internal static class Program
                 counts[kind]=counts.GetValueOrDefault(kind)+1;
                 Write(new{utc=e.TimeStamp.ToUniversalTime(),provider="WGC",eventId=id,kind,serverPid=(int)target});
             }
-            else if(e.ProviderGuid==Dxg&&id is 1073 or 1078)
+            else if(e.ProviderGuid==Dxg&&id is 192 or 193 or 1073 or 1074 or 1075 or 1078)
             {
-                // Header attribution must match the known server process; never
-                // infer ownership from DWM/System activity.
-                if(!CurrentServer(e.ProcessID)){unattributed++;return;}
+                observed[id]=observed.GetValueOrDefault(id)+1;
+                var utc=e.TimeStamp.ToUniversalTime();
+                if(id is 192 or 193)
+                {
+                    // Separate diagnostic context-index namespace. Never equate
+                    // ContextIndex with the kernel ContextPtr or a monitor.
+                    if(!CurrentServer(e.ProcessID)){unattributed++;return;}
+                    if(!TryNumber(e,"WdLogIndex",out var log)||
+                       !TryNumber(e,"ContextIndex",out var index)){dropped++;return;}
+                    var key=(e.ProcessID,log,index);
+                    if(!diagnostics.TryGetValue(key,out int token)){token=++nextDiagnostic;diagnostics[key]=token;}
+                    var kind=id==192?"DiagnosticConnect":"DiagnosticDestroy";
+                    counts[kind]=counts.GetValueOrDefault(kind)+1;
+                    ulong? status=TryNumber(e,id==192?"Status":"DestroyReason",out var value)?value:null;
+                    Write(new{utc,provider="DxgKrnl",eventId=id,kind,serverPid=e.ProcessID,diagnosticContext=token,status});
+                    if(id==193)diagnostics.Remove(key);
+                    return;
+                }
                 if(!TryNumber(e,"ContextPtr",out var context)||context==0){dropped++;return;}
-                string kind=id==1073?"OutputDuplicationCreate":"OutputDuplicationDestroy";
-                if(!contexts.TryGetValue(context,out var ordinal)){ordinal=++nextContext;contexts[context]=ordinal;}
-                ulong? display=id==1073&&TryNumber(e,"VidPnSourceId",out var vid)?vid:null;
-                counts[kind]=counts.GetValueOrDefault(kind)+1;
-                Write(new{utc=e.TimeStamp.ToUniversalTime(),provider="DxgKrnl",eventId=id,kind,serverPid=e.ProcessID,context=ordinal,vidPnSourceId=display});
-                if(id==1078)contexts.Remove(context);
+                if(id==1073)
+                {
+                    // A context can be attributed only by a create event whose
+                    // process generation belongs to GameViewerServer.
+                    if(!CurrentServer(e.ProcessID)){contexts.Remove(context);unattributed++;return;}
+                    int adapter=0;
+                    if(TryNumber(e,"hAdapter",out var handle)&&handle!=0)
+                    {
+                        var key=(e.ProcessID,handle);
+                        if(!adapters.TryGetValue(key,out adapter)){adapter=adapters.Count+1;adapters[key]=adapter;}
+                    }
+                    if(!TryNumber(e,"VidPnSourceId",out var vid)){dropped++;return;}
+                    var ordinal=++nextContext;
+                    contexts[context]=(ordinal,e.ProcessID,adapter,vid,utc,0);
+                    counts["OutputDuplicationCreate"]=counts.GetValueOrDefault("OutputDuplicationCreate")+1;
+                    Write(new{utc,provider="DxgKrnl",eventId=id,kind="OutputDuplicationCreate",serverPid=e.ProcessID,context=ordinal,adapter,vidPnSourceId=vid});
+                    return;
+                }
+                if(!contexts.TryGetValue(context,out var owner)){unattributed++;return;}
+                // A cross-process destruction candidate is useful diagnostic
+                // evidence when its pointer matches an attributed create.
+                // An unfamiliar header PID is never promoted to session proof.
+                if(id!=1078&&e.ProcessID!=owner.Owner&&e.ProcessID!=0&&e.ProcessID!=4){unattributed++;return;}
+                if(!CurrentServer(owner.Owner)){unattributed++;return;}
+                if(id==1078)
+                {
+                    counts["OutputDuplicationDestroy"]=counts.GetValueOrDefault("OutputDuplicationDestroy")+1;
+                    Write(new{utc,provider="DxgKrnl",eventId=id,kind="OutputDuplicationDestroy",serverPid=owner.Owner,
+                        context=owner.Ordinal,adapter=owner.Adapter,vidPnSourceId=owner.Source,eventOrigin=e.ProcessID==owner.Owner?"Server":e.ProcessID is 0 or 4?"Kernel":"OtherProcessCandidate",pendingFrameEvents=owner.Frames});
+                    contexts.Remove(context);
+                    return;
+                }
+                // No pixel, cursor, region or frame data is retained. Sample
+                // the count of operations on exactly the attributed context.
+                owner.Frames++;
+                if((utc-owner.LastReport).TotalSeconds>=2)
+                {
+                    Write(new{utc,provider="DxgKrnl",kind="CaptureActivity",serverPid=owner.Owner,context=owner.Ordinal,
+                        adapter=owner.Adapter,vidPnSourceId=owner.Source,frameEvents=owner.Frames});
+                    owner.LastReport=utc;owner.Frames=0;
+                }
+                contexts[context]=owner;
             }
         };
         try
@@ -80,7 +135,7 @@ internal static class Program
             session.EnableProvider(Wgc,TraceEventLevel.Informational,1,
                 new TraceEventProviderOptions{EventIDsToEnable=[1,2]});
             session.EnableProvider(Dxg,TraceEventLevel.Verbose,1,
-                new TraceEventProviderOptions{EventIDsToEnable=[1073,1078]});
+                new TraceEventProviderOptions{EventIDsToEnable=[192,193,1073,1074,1075,1078]});
             Write(new{utc=DateTime.UtcNow,kind="ProbeStarted",session=name,seconds,serverPids=known.Keys.ToArray()});
             Console.WriteLine($"READY: {seconds}s. Output: {output}");
                         int stopping=0;
@@ -93,7 +148,7 @@ internal static class Program
             Console.CancelKeyPress+=(_,e)=>{e.Cancel=true;Stop();};
             source.Process();
             // A restarted server is not treated as the same process generation.
-            Write(new{utc=DateTime.UtcNow,kind="ProbeFinished",counts,unattributed,dropped,eventsLost=source.EventsLost,
+            Write(new{utc=DateTime.UtcNow,kind="ProbeFinished",counts,observed,unattributed,dropped,eventsLost=source.EventsLost,remainingContexts=contexts.Values.Select(c=>new{context=c.Ordinal,c.Adapter,c.Source,pendingFrameEvents=c.Frames}).ToArray(),
                 sameServerGeneration=known.Count>0&&known.Keys.All(CurrentServer)});
             return 0;
         }
