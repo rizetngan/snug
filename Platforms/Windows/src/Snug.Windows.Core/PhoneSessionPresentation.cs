@@ -12,6 +12,16 @@ public sealed class PhoneSessionPresentation
     public bool ShouldPresent(bool wantsPhoneScreen) =>
         wantsPhoneScreen && !DismissedInEpisode;
 
+    public bool CanReenter(bool connected, bool wantsPhoneScreen, bool enabled) =>
+        DismissedInEpisode && connected && wantsPhoneScreen && enabled;
+
+    public bool TryReenter(bool connected, bool wantsPhoneScreen, bool enabled)
+    {
+        if (!CanReenter(connected, wantsPhoneScreen, enabled)) return false;
+        EnableAgain();
+        return true;
+    }
+
     public void DismissForEpisode() => DismissedInEpisode = true;
 
     public void EnableAgain() => DismissedInEpisode = false;
