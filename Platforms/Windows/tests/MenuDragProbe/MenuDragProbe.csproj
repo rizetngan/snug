@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><UseAppHost>false</UseAppHost><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
-  <ItemGroup><Compile Include="..\..\src\Snug.Windows\Services\PhoneDragScroll.cs" Link="PhoneDragScroll.cs"/></ItemGroup>
+  <ItemGroup><Compile Include="..\..\src\Snug.Windows\Services\PhoneDragScroll.cs" Link="PhoneDragScroll.cs"/><ProjectReference Include="..\..\src\Snug.Windows.Core\Snug.Windows.Core.csproj"/></ItemGroup>
 </Project>

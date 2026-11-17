@@ -121,7 +121,7 @@ public partial class PhoneSurfaceWindow : Window
             Dispatcher.BeginInvoke(UpdatePreviewCanvas);
 
         if (e.PropertyName == nameof(AppController.QuitStalled) && _controller.QuitStalled is not null)
-            Dispatcher.BeginInvoke(() => { RefreshLists(); HomeScroll.ScrollToTop(); });
+            Dispatcher.BeginInvoke(() => { RefreshLists(); PhoneDragScroll.StopScrolling(HomeScroll); HomeScroll.ScrollToTop(); });
 
         if (e.PropertyName is nameof(AppController.ActivityStatus)
             or nameof(AppController.QuitStalled)
@@ -208,7 +208,7 @@ public partial class PhoneSurfaceWindow : Window
     {
         ClearConfirmation();
         _showAll = false;
-        HomeScroll.ScrollToTop();
+        PhoneDragScroll.StopScrolling(HomeScroll); HomeScroll.ScrollToTop();
         UpdateTabs();
     }
 
@@ -216,7 +216,7 @@ public partial class PhoneSurfaceWindow : Window
     {
         ClearConfirmation();
         _showAll = true;
-        HomeScroll.ScrollToTop();
+        PhoneDragScroll.StopScrolling(HomeScroll); HomeScroll.ScrollToTop();
         UpdateTabs();
     }
 
@@ -356,7 +356,7 @@ public partial class PhoneSurfaceWindow : Window
         ClearConfirmation();
         _pendingDismissScreen = true;
         DismissPhoneBanner.Visibility = Visibility.Visible;
-        HomeScroll.ScrollToTop();
+        PhoneDragScroll.StopScrolling(HomeScroll); HomeScroll.ScrollToTop();
     }
 
     private void CancelConfirm_Click(object sender, RoutedEventArgs e) => ClearConfirmation();

@@ -94,4 +94,31 @@ public sealed class TouchTranslatorTests
         Assert.True(response.PassOriginal);
         Assert.Empty(response.Commands);
     }
+    [Theory]
+    [InlineData(1.0,true)]
+    [InlineData(2.0,false)]
+    public void FlingThresholdScalesWithPhoneWidth(double scale,bool expected)
+    {
+        var t=new TouchTranslator();
+        t.Handle(new(PointerKind.Press,new(0,0),1),true,scale);
+        t.Handle(new(PointerKind.Move,new(0,25),1.08),true,scale);
+        t.Handle(new(PointerKind.Move,new(0,31),1.10),true,scale);
+        t.Handle(new(PointerKind.Release,new(0,31),1.11),true,scale);
+        Assert.Equal(expected,t.IsCoasting);
+    }
+
+    [Fact]
+    public void FlingSpeedCapScalesLikeUpstream()
+    {
+        static double FirstFrame(double scale)
+        {
+            var t=new TouchTranslator();
+            t.Handle(new(PointerKind.Press,new(0,0),1),true,scale);
+            t.Handle(new(PointerKind.Move,new(0,500),1.04),true,scale);
+            t.Handle(new(PointerKind.Move,new(0,1000),1.08),true,scale);
+            t.Handle(new(PointerKind.Release,new(0,1000),1.09),true,scale);
+            return t.MomentumFrame()!.Value.DeltaY;
+        }
+        Assert.Equal(FirstFrame(1)*2,FirstFrame(2),6);
+    }
 }

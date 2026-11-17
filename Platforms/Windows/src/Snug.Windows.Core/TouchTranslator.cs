@@ -129,7 +129,7 @@ public sealed class TouchTranslator
 
         _phase = GesturePhase.Idle;
         var ended = _wheel.Step(0, 0, ScrollPhase.Ended, MomentumPhase.None, _origin);
-        _momentum = Momentum.TryCreate(FlingVelocity(input.TimeSeconds));
+        _momentum = Momentum.TryCreate(FlingVelocity(input.TimeSeconds), _gestureScale);
         return TouchResponse.Swallow(new TouchCommand(TouchCommandKind.Scroll, _origin, ended));
     }
     private ScrollStep ScrollTo(TouchInput input)
@@ -168,8 +168,8 @@ public sealed class TouchTranslator
         var vx = (b.Point.X - a.Point.X) / dt;
         var vy = (b.Point.Y - a.Point.Y) / dt;
         var speed = Math.Sqrt(vx * vx + vy * vy);
-        if (speed <= MaxFlingSpeed) return (vx, vy);
-        return (vx / speed * MaxFlingSpeed, vy / speed * MaxFlingSpeed);
+        if (speed <= MaxFlingSpeed * _gestureScale) return (vx, vy);
+        return (vx / speed * MaxFlingSpeed * _gestureScale, vy / speed * MaxFlingSpeed * _gestureScale);
     }
 
     private static double Distance(PointD a, PointD b)
@@ -210,13 +210,14 @@ public sealed class TouchTranslator
         private double _vx;
         private double _vy;
         private bool _started;
+        private readonly double _stopSpeed;
 
-        private Momentum(double vx, double vy) { _vx = vx; _vy = vy; }
+        private Momentum(double vx, double vy, double scale) { _vx = vx; _vy = vy; _stopSpeed = StopSpeed * scale; }
 
-        public static Momentum? TryCreate((double X, double Y) velocity)
+        public static Momentum? TryCreate((double X, double Y) velocity, double scale)
         {
-            return Math.Sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y) > MinSpeed
-                ? new Momentum(velocity.X, velocity.Y)
+            return Math.Sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y) > MinSpeed * scale
+                ? new Momentum(velocity.X, velocity.Y, scale)
                 : null;
         }
 
@@ -224,7 +225,7 @@ public sealed class TouchTranslator
         {
             _vx *= Decay;
             _vy *= Decay;
-            if (Math.Sqrt(_vx * _vx + _vy * _vy) < StopSpeed) return null;
+            if (Math.Sqrt(_vx * _vx + _vy * _vy) < _stopSpeed) return null;
             var phase = _started ? MomentumPhase.Continued : MomentumPhase.Began;
             _started = true;
             return (_vx / 60, _vy / 60, phase);
