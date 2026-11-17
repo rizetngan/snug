@@ -102,3 +102,11 @@ When the HWND is destroyed, `AppController` moves the recoverable record from `p
 - DPI-aware live screenshot: F:\snug for Windows\diagnostics\SNUG_INSTALLED_0.2.24_LIVE_VDD.png, **1080x1834 physical pixels**.
 - Session handoff log: F:\snug for Windows\diagnostics\UPGRADE_INSTALLED_0.2.24.log.
 - The standard desktop shortcut/startup registration now targets the installed 0.2.24, not a temporary .tools/dotnet.exe candidate. Reboot persistence is therefore configured, but a reboot cycle has **not** been exercised in this audit.
+## Windows 0.2.25 — native caption-close and physical pointer coordinates
+- Added CloseTapGuard and NativeCloseHitTest. For an injected short tap on the placed foreground window, require a real Win32 HTCLOSE result, consistent HWND/PID and unchanged window frame at release and again before executing the serialized action. Drags, long holds and stale targets are consumed rather than replayed.
+- Reuses the existing restore-before-WM_CLOSE flow. The ordinary browser-header passthrough still follows native press/release.
+- Initial live fixture test failed because physical WH_MOUSE_LL coordinates were compared against DPI-virtualized display bounds. The phone VDD was 1080x1834 physical, 720x1223 logical. Fixed by using raw EnumDisplaySettings bounds and a scoped Per-Monitor V2 input DPI context, including scroll replay and native hit tests. Layout/window-placement coordinates are otherwise unchanged.
+- Live isolated WinForms fixture: physical placed rect 1920,0,1080x1779; native HTCLOSE at 2985,15; FormClosing recorded the restored main-screen geometry 140,130,760x560. The active ledger was removed, no left-behind debt remained.
+- Live isolated Chrome: dynamic VDD physical 1640x2784; injected A->B->A click sequence changed the actual window title each time. Captured evidence: F:\snug for Windows\diagnostics\SNUG_0.2.25_BROWSER_PHYSICAL_TABS.png.
+- Test Chrome was returned from the VDD through normal Snug shutdown, after which the isolated Chrome window was closed. No user browser was closed. The installed 0.2.24 launcher was restarted while packaging.
+- Core: 169/169 tests pass. Release build: 0 errors, 0 warnings. Actual iPhone/UU touch acceptance remains outstanding; a Windows injected-input test is not equivalent to iPhone device testing.

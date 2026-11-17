@@ -19,6 +19,9 @@ public sealed class MouseGestureHook : IDisposable
     private PointD _heldPress;
     private bool _passthroughBrowserChrome;
     private bool _disposed;
+    private readonly CloseTapGuard _closeTap = new();
+    public Func<WindowKey?>? PlacedWindowKey { get; set; }
+    public event Action<CloseButtonHit>? NativeCloseTapped;
 
     public MouseGestureHook()
     {
@@ -32,10 +35,24 @@ public sealed class MouseGestureHook : IDisposable
 
     public bool IsRunning => _hook != IntPtr.Zero;
 
-    public void SetRegion(WindowBounds? region, double scale = 1)
+    public void SetRegion(DisplayInfo? display, double scale = 1)
     {
-        _region = region;
-        _regionScale = Math.Max(1, scale);
+        _region = null;
+        if (display is null || !PhoneDisplayModeSwitcher.IsSnugDisplay(display)) return;
+        var mode = new NativeMethods.DEVMODE
+        {
+            Size = checked((ushort)Marshal.SizeOf<NativeMethods.DEVMODE>()),
+            DeviceName = string.Empty,
+            FormName = string.Empty
+        };
+        // EnumDisplaySettings returns raw physical dimensions and position.
+        // Never compare hook pixels with the DPI-virtualized Screen.Bounds.
+        if (!NativeMethods.EnumDisplaySettings(display.DeviceName, -1, ref mode) ||
+            mode.PelsWidth == 0 || mode.PelsHeight == 0) return;
+        _region = new WindowBounds(mode.PositionX, mode.PositionY,
+            checked((int)mode.PelsWidth), checked((int)mode.PelsHeight));
+        _regionScale = Math.Max(1, scale) *
+            Math.Max(1, (double)mode.PelsWidth / Math.Max(1, display.Bounds.Width));
     }
 
     public bool Start()
@@ -55,6 +72,7 @@ public sealed class MouseGestureHook : IDisposable
     {
         _coastTimer.Stop();
         _passthroughBrowserChrome = false;
+        _closeTap.Reset();
         if (_hook == IntPtr.Zero) return;
         NativeMethods.UnhookWindowsHookEx(_hook);
         _hook = IntPtr.Zero;
@@ -62,13 +80,16 @@ public sealed class MouseGestureHook : IDisposable
 
     private void OnCoastTick(object? sender, EventArgs e)
     {
-        if (_translator.MomentumFrame() is { } step) PostScroll(step);
+        using var dpi = new PhysicalDpiScope();
+        if (dpi.IsValid && _translator.MomentumFrame() is { } step) PostScroll(step);
         if (!_translator.IsCoasting) _coastTimer.Stop();
     }
 
     private IntPtr OnMouse(int code, IntPtr wParam, IntPtr lParam)
     {
         if (code < 0 || _region is null) return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
+        using var dpi = new PhysicalDpiScope();
+        if (!dpi.IsValid) return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
 
         var info = Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
         if ((info.Flags & NativeMethods.LLMHF_INJECTED) == 0
@@ -89,6 +110,37 @@ public sealed class MouseGestureHook : IDisposable
         var region = _region.Value;
         var inside = point.X >= region.X && point.X < region.X + region.Width
             && point.Y >= region.Y && point.Y < region.Y + region.Height;
+        // Native caption close is distinct from browser tabs, including tab
+        // close icons. Check only the actual placed foreground HWND.
+        var seconds = (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency;
+        if (kind == PointerKind.Press)
+        {
+            _closeTap.Reset();
+            if (inside && PlacedWindowKey?.Invoke() is { } key &&
+                NativeCloseHitTest.Capture(key, point) is { } close)
+            {
+                _passthroughBrowserChrome = false;
+                var stop = _translator.Handle(new TouchInput(kind.Value, point, seconds), false);
+                foreach (var command in stop.Commands) Execute(command, kind.Value, point);
+                _closeTap.Begin(close, seconds, _regionScale);
+                return new IntPtr(1);
+            }
+        }
+        if (_closeTap.Tracking)
+        {
+            if (kind == PointerKind.Move) _closeTap.Move(point);
+            else if (kind == PointerKind.Release)
+            {
+                var current = PlacedWindowKey?.Invoke() is { } key
+                    ? NativeCloseHitTest.Capture(key, point) : null;
+                if (_closeTap.Release(current, point, seconds) is { } tap)
+                    _coastTimer.Dispatcher.BeginInvoke(new Action(() => NativeCloseTapped?.Invoke(tap)),
+                        DispatcherPriority.Input);
+            }
+            // Never replay a stale/dragged/long-held close tap onto another app.
+            return new IntPtr(1);
+        }
+
         // Native browser tabs and address controls must receive the original
         // UU press/release. Replay inside WH_MOUSE_LL loses Chrome tab clicks.
         if (kind == PointerKind.Press)
@@ -98,7 +150,6 @@ public sealed class MouseGestureHook : IDisposable
             if (kind == PointerKind.Release) _passthroughBrowserChrome = false;
             return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
         }
-        var seconds = (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency;
         var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside, _regionScale);
 
         if (kind == PointerKind.Press && !response.PassOriginal) _heldPress = point;

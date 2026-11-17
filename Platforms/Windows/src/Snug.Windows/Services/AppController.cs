@@ -200,6 +200,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _activeModeWidth = new ScreenFit(CurrentDisplayChoice.Screen).BaseWidth;
         _placedModeWidth = _activeModeWidth;
         _appCatalog = new AppCatalogService(_windowManager);
+        _gestureHook.PlacedWindowKey = () => _placed?.Key;
+        _gestureHook.NativeCloseTapped += OnNativeCloseTapped;
         _zoomBook = new ZoomBook(_settings.AppZoomSteps);
         _phoneScreenEnabled = _settings.PhoneScreenEnabled;
         _gesturesEnabled = _settings.GesturesEnabled;
@@ -489,6 +491,31 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         {
             ActivityStatus = "记录保存提示窗口的位置失败：" + error.Message;
             return false;
+        }
+    }
+
+    private async void OnNativeCloseTapped(CloseButtonHit hit)
+    {
+        try
+        {
+            await _actionLane.RunAsync(async () =>
+            {
+                // A queued gesture must not apply to a replaced window or
+                // to a caption that moved after the user lifted their finger.
+                if (_disposed || !_connection.IsConnected || _phoneSurface?.IsVisible == true ||
+                    _placed is not { } placed || placed.Key != hit.Key ||
+                    !NativeCloseHitTest.Revalidate(hit)) return;
+                var window = Windows.FirstOrDefault(w => w.Key == hit.Key) ??
+                    new WindowInfo(placed.Key, placed.AppName, placed.Title ?? "",
+                        placed.ExecutablePath, false, false);
+                await CloseWindowCoreAsync(window, false);
+                if (!HasPlacedWindow && _phoneSurface?.IsVisible == true)
+                    ShowPhoneList();
+            });
+        }
+        catch (Exception error)
+        {
+            ActivityStatus = "关闭窗口失败：" + error.Message;
         }
     }
 
@@ -846,7 +873,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _phoneSurface?.PlaceOn(found);
             _homeBar?.PlaceOn(found);
             _appBackBar?.PlaceOn(found);
-            _gestureHook.SetRegion(found.Bounds, TouchScale());
+            _gestureHook.SetRegion(found, TouchScale());
             SyncGestures();
             RefreshDisplays();
             return true;
@@ -1325,7 +1352,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _activeModeWidth = new ScreenFit(CurrentDisplayChoice.Screen).BaseWidth;
         _placedModeWidth = _activeModeWidth;
         _showingPhoneList = true;
-        _gestureHook.SetRegion(display.Bounds, TouchScale());
+        _gestureHook.SetRegion(display, TouchScale());
         SyncGestures();
     }
 
@@ -1381,7 +1408,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             return;
         }
 
-        _gestureHook.SetRegion(_phoneDisplay.Bounds, TouchScale());
+        _gestureHook.SetRegion(_phoneDisplay, TouchScale());
         if (!_gestureHook.IsRunning && !_gestureHook.Start())
             ActivityStatus = "手势监听启动失败";
     }
