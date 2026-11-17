@@ -71,8 +71,7 @@ public sealed class LeftBehindBook
                 entry.Record.FilledBounds is { } filled &&
                 StringComparer.OrdinalIgnoreCase.Equals(
                     entry.Record.ExecutablePath, window.ExecutablePath) &&
-                Math.Abs(filled.Width - actual.Width) < 2 &&
-                Math.Abs(filled.Height - actual.Height) < 2).ToArray();
+                MatchesFilledSize(entry.Record, window, filled, actual)).ToArray();
 
             static LeftBehindEntry? Latest(IEnumerable<LeftBehindEntry> items) =>
                 items.OrderByDescending(entry => entry.Since).FirstOrDefault();
@@ -82,6 +81,31 @@ public sealed class LeftBehindBook
                     !string.IsNullOrWhiteSpace(entry.Record.Title) &&
                     StringComparer.Ordinal.Equals(entry.Record.Title, window.Title)))
                 ?? Latest(candidates);
+        }
+    }
+
+    private static bool MatchesFilledSize(WindowRestoreRecord record, WindowInfo window,
+        WindowBounds filled, WindowBounds actual)
+    {
+        // Actual Windows Electron restores can differ by three logical pixels
+        // across DPI contexts. Wider tolerance only for an exact editor title.
+        var tolerance = ZoomRecovery.ScopeOf(record.ExecutablePath) == ZoomScope.Workspace &&
+            ZoomRecovery.IsWorkspaceTitle(window.Title) &&
+            StringComparer.Ordinal.Equals(record.Title, window.Title) ? 4 : 1;
+        return Math.Abs(filled.Width - actual.Width) <= tolerance &&
+            Math.Abs(filled.Height - actual.Height) <= tolerance;
+    }
+
+    public LeftBehindEntry UpdateRecord(LeftBehindEntry entry, WindowRestoreRecord record)
+    {
+        lock (_gate)
+        {
+            var index = _entries.IndexOf(entry);
+            if (index < 0) throw new InvalidOperationException("Left-behind entry no longer exists.");
+            var updated = entry with { Record = record };
+            _entries[index] = updated;
+            Save();
+            return updated;
         }
     }
 

@@ -787,7 +787,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
         if (_driver.IsManagedBySnug && _displayEnumerator.FindSnugDisplay() is not null)
         {
-            if (!await _driver.StopDisplayAsync())
+            if (!await ChangeOwnedDisplayAsync(false))
                 return new(false, "手机屏尚未关闭，暂不能修复驱动。");
         }
 
@@ -819,7 +819,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _phoneSurface = null;
         _phoneDisplay = null;
         if (_driver.IsManagedBySnug && _displayEnumerator.FindSnugDisplay() is not null
-            && !await _driver.StopDisplayAsync())
+            && !await ChangeOwnedDisplayAsync(false))
         {
             _timer.Start();
             ActivityStatus = "手机屏尚未关闭，Snug 保持运行以便重试";
@@ -867,6 +867,24 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     };
 
     /// <summary>Only the Snug-owned monitor may change, and only to a VDD-advertised mode.</summary>
+    private async Task<bool> ChangeOwnedDisplayAsync(bool start)
+    {
+        var before = OtherDisplayGuard.Capture();
+        var changed = start ? await _driver.StartDisplayAsync() : await _driver.StopDisplayAsync();
+        if (changed && start)
+        {
+            var until = DateTimeOffset.UtcNow.AddSeconds(15);
+            while (DateTimeOffset.UtcNow < until && _displayEnumerator.FindSnugDisplay() is null)
+                await Task.Delay(250);
+        }
+        if (!await OtherDisplayGuard.PreserveAsync(before))
+        {
+            ActivityStatus = "其他显示器的原始模式未能完全恢复，请检查 Windows 显示设置";
+            return false;
+        }
+        return changed;
+    }
+
     private async Task<bool> ChangePhoneModeAsync(int width)
     {
         var fit = new ScreenFit(CurrentDisplayChoice.Screen);
@@ -886,11 +904,17 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             // WinForms screen bounds are DPI-virtualized (720x1223 on this
             // user's 1080x1834 VDD). Always compare/set the raw Win32 mode.
             // TryChange is a no-op when the existing raw mode already matches.
+            var protectedModes = changingMode ? OtherDisplayGuard.Capture() : [];
             var switched = await Task.Run(() =>
             {
                 var success = _modeSwitcher.TryChange(display, mode, out var message);
                 return (success, message);
             });
+            if (changingMode && !await OtherDisplayGuard.PreserveAsync(protectedModes))
+            {
+                ActivityStatus = "其他显示器的原始模式未能完全恢复，请检查 Windows 显示设置";
+                return false;
+            }
             if (!switched.success)
             {
                 ActivityStatus = switched.message;
@@ -1144,7 +1168,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 _ledger.Clear();
                 return (Restored: true,
                     Message: remembered
-                        ? "窗口已消失；已记录原位置，重新出现时将检查是否需要还原"
+                        ? record.ZoomSteps != 0 && ZoomRecovery.ScopeOf(record.ExecutablePath) == ZoomScope.Workspace
+                            ? $"尚未恢复 {record.AppName} 的字号；重新打开原工作区时将检查恢复"
+                            : "窗口已消失；已记录原位置，重新出现时将检查是否需要还原"
                         : "原窗口已关闭；没有可匹配的铺屏记录",
                     Remaining: (WindowRestoreRecord?)null);
             }
@@ -1344,7 +1370,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _connection.NoteSelfInducedChange(DateTimeOffset.UtcNow);
             _activeDisplayPhoneChoice = _phoneChoice;
             _driver.WritePhoneProfile(_activeDisplayPhoneChoice);
-            if (!await _driver.StartDisplayAsync())
+            if (!await ChangeOwnedDisplayAsync(true))
                 throw new InvalidOperationException("无法启动 Snug 手机屏。请在设置中修复虚拟显示驱动。");
             await RefreshDriverStatusAsync();
 
@@ -1377,7 +1403,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             DisplayStatus = "手机屏创建失败";
             _ = RefreshDriverStatusAsync();
             if (_driver.IsManagedBySnug)
-                await _driver.StopDisplayAsync();
+                await ChangeOwnedDisplayAsync(false);
         }
         finally
         {
@@ -1493,7 +1519,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (_driver.IsManagedBySnug)
         {
             _connection.NoteSelfInducedChange(DateTimeOffset.UtcNow);
-            if (!await _driver.StopDisplayAsync())
+            if (!await ChangeOwnedDisplayAsync(false))
                 ActivityStatus = "手机屏已退出，系统显示器正在关闭；稍后会自动重试";
         }
 
@@ -1508,7 +1534,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (_displayEnumerator.FindSnugDisplay() is null) return;
 
         _connection.NoteSelfInducedChange(DateTimeOffset.UtcNow);
-        if (await _driver.StopDisplayAsync())
+        if (await ChangeOwnedDisplayAsync(false))
         {
             await Task.Delay(800);
             RefreshDisplays();
@@ -1562,6 +1588,33 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             return;
         }
         if (_leftBehind.Entries.Count == 0) return;
+
+        // Upstream Zed zoom is process-local rather than window-local. Repay
+        // only using the original, still-running process (creation time too).
+        // If no other window exists, keep the debt until one appears.
+        foreach (var entry in _leftBehind.Entries.Where(e =>
+            e.Record.ZoomSteps != 0 &&
+            ZoomRecovery.ScopeOf(e.Record.ExecutablePath) == ZoomScope.Process &&
+            e.Record.ProcessStartedUtcTicks.HasValue))
+        {
+            var record = entry.Record;
+            var start = WindowManager.ProcessStartUtcTicks(record.Key.ProcessId);
+            var exited = ProcessHasExited((int)record.Key.ProcessId) ||
+                (start.HasValue && start != record.ProcessStartedUtcTicks);
+            if (!exited)
+            {
+                if (start != record.ProcessStartedUtcTicks) continue;
+                var other = Windows.FirstOrDefault(w => w.Key.ProcessId == record.Key.ProcessId &&
+                    !w.IsMinimized && StringComparer.OrdinalIgnoreCase.Equals(
+                        w.ExecutablePath, record.ExecutablePath) && _windowManager.IsResponsive(w.Key));
+                if (other is null || !_windowManager.Zoom(other, -record.ZoomSteps)) continue;
+            }
+            try { _leftBehind.UpdateRecord(entry, record with { ZoomSteps = 0 }); }
+            catch (IOException error) { ActivityStatus = "字号恢复账本保存失败：" + error.Message; return; }
+            catch (UnauthorizedAccessException error) { ActivityStatus = "字号恢复账本保存失败：" + error.Message; return; }
+            // Re-read entries next tick. Only one repayment occurs per scan.
+            return;
+        }
         foreach (var window in Windows)
         {
             if (window.IsMinimized || !_windowManager.IsResponsive(window.Key)) continue;
@@ -1569,20 +1622,47 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             if (_leftBehind.Match(window, actual, now) is not { } match) continue;
 
             var old = match.Record;
-            // On Windows a recreated process need not retain old text zoom.
-            // Undo zoom only for the same process and a supported editor.
-            var safeZoom = old.Key.ProcessId == window.Key.ProcessId
-                && ZoomBook.IsZoomable(window.ExecutablePath, window.AppName)
-                ? old.ZoomSteps : 0;
-            if (safeZoom != 0 && !_windowManager.Zoom(window, -safeZoom))
+            var uniqueDebt = _leftBehind.Entries.Count(entry =>
+                entry.Record.ZoomSteps != 0 &&
+                StringComparer.OrdinalIgnoreCase.Equals(entry.Record.ExecutablePath, old.ExecutablePath) &&
+                StringComparer.Ordinal.Equals(entry.Record.Title, old.Title)) <= 1;
+            var uniqueTitle = uniqueDebt && Windows.Count(w =>
+                StringComparer.OrdinalIgnoreCase.Equals(w.ExecutablePath, window.ExecutablePath) &&
+                StringComparer.Ordinal.Equals(w.Title, window.Title)) == 1;
+            var action = ZoomRecovery.Decide(old, window,
+                WindowManager.ProcessStartUtcTicks(window.Key.ProcessId), uniqueTitle,
+                originalProcessExited: ProcessHasExited((int)old.Key.ProcessId) ||
+                    (old.ProcessStartedUtcTicks is { } oldStart &&
+                     WindowManager.ProcessStartUtcTicks(old.Key.ProcessId) is { } actualStart &&
+                     oldStart != actualStart));
+            if (action == ZoomRecoveryAction.KeepForReview)
+            {
+                ActivityStatus = $"尚未恢复 {old.AppName} 的字号：未能确认返回的是原窗口或工作区";
+                continue;
+            }
+            if (action == ZoomRecoveryAction.Repay &&
+                !_windowManager.Zoom(window, -old.ZoomSteps))
                 return;
 
-            var restored = old with { Key = window.Key, ZoomSteps = 0 };
-            if (!_windowManager.Restore(restored))
+            // Persist the zero balance BEFORE moving the window. A failed
+            // geometry restore on the next tick must not shrink text twice.
+            if (old.ZoomSteps != 0)
             {
-                if (safeZoom != 0) _windowManager.Zoom(window, safeZoom);
-                return;
+                try { match = _leftBehind.UpdateRecord(match, old with { ZoomSteps = 0 }); }
+                catch (IOException error)
+                {
+                    ActivityStatus = "字号已恢复，暂时无法保存窗口恢复账本：" + error.Message;
+                    return;
+                }
+                catch (UnauthorizedAccessException error)
+                {
+                    ActivityStatus = "字号已恢复，暂时无法保存窗口恢复账本：" + error.Message;
+                    return;
+                }
+                old = match.Record;
             }
+            var restored = old with { Key = window.Key, ZoomSteps = 0 };
+            if (!_windowManager.Restore(restored)) return;
 
             try { _leftBehind.Remove(match); }
             catch (IOException error)

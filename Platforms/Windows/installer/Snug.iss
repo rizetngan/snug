@@ -1,5 +1,5 @@
 #define AppName "Snug for Windows"
-#define AppVersion "0.2.26"
+#define AppVersion "0.2.27"
 #define AppExeName "SnugLauncher.exe"
 
 [Setup]

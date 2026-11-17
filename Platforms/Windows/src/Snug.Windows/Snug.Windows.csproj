@@ -11,7 +11,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Snug.Windows</AssemblyName>
     <RootNamespace>Snug.Windows</RootNamespace>
-    <Version>0.2.26</Version>
+    <Version>0.2.27</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Snug.ico</ApplicationIcon>
   </PropertyGroup>

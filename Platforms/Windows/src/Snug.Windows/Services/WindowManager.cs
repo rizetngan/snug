@@ -83,7 +83,10 @@ public sealed class WindowManager
                 placement.NormalPosition.Right - placement.NormalPosition.Left,
                 placement.NormalPosition.Bottom - placement.NormalPosition.Top));
 
-        return new WindowRestoreRecord(1, window.Key, window.AppName, window.ExecutablePath, data, zoomSteps, DateTimeOffset.UtcNow, window.Title);
+        return new WindowRestoreRecord(1, window.Key, window.AppName, window.ExecutablePath,
+            data, zoomSteps, DateTimeOffset.UtcNow, window.Title,
+            ProcessStartedUtcTicks: ProcessStartUtcTicks(window.Key.ProcessId),
+            OriginalPhysicalBounds: placement.ShowCmd == 1 ? ReadPhysicalBounds(window.Key) : null);
     }
 
     /// <summary>Finds a visible, owned, modal dialog belonging to the given app.</summary>
@@ -164,6 +167,15 @@ public sealed class WindowManager
             rect.Bottom - rect.Top);
     }
 
+    private static WindowBounds? ReadPhysicalBounds(WindowKey key)
+    {
+        using var dpi = new PhysicalDpiScope();
+        var handle = new IntPtr(key.Handle);
+        if (!dpi.IsValid || !IsSameWindow(handle, key.ProcessId) ||
+            !NativeMethods.GetWindowRect(handle, out var rect)) return null;
+        return new(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top);
+    }
+
     public bool Restore(WindowRestoreRecord record)
     {
         var handle = new IntPtr(record.Key.Handle);
@@ -184,7 +196,37 @@ public sealed class WindowManager
                 Bottom = saved.NormalPosition.Y + saved.NormalPosition.Height
             }
         };
-        return NativeMethods.SetWindowPlacement(handle, ref placement);
+        if (!NativeMethods.SetWindowPlacement(handle, ref placement)) return false;
+        if (saved.ShowCommand != 1 || record.OriginalPhysicalBounds is not { } original)
+            return true; // Keep legacy/native minimized and maximized semantics.
+
+        // Native WindowPlacement can apply the *current* monitor DPI to a
+        // pre-move rectangle. Settle on the destination, then correct in
+        // physical coordinates. Never place off-screen if a monitor was removed.
+        using var dpi = new PhysicalDpiScope();
+        var center = new NativeMethods.POINT { X = original.X + original.Width / 2,
+            Y = original.Y + original.Height / 2 };
+        if (!dpi.IsValid || NativeMethods.MonitorFromPoint(center, 0) == IntPtr.Zero)
+            return true;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            Thread.Sleep(180);
+            if (!IsSameWindow(handle, record.Key.ProcessId) ||
+                !NativeMethods.GetWindowRect(handle, out var current)) return false;
+            if (Math.Abs(current.Left - original.X) <= 3 &&
+                Math.Abs(current.Top - original.Y) <= 3 &&
+                Math.Abs(current.Right - current.Left - original.Width) <= 3 &&
+                Math.Abs(current.Bottom - current.Top - original.Height) <= 3)
+                return true;
+            if (!NativeMethods.SetWindowPos(handle, IntPtr.Zero, original.X, original.Y,
+                original.Width, original.Height, NativeMethods.SWP_NOZORDER | NativeMethods.SWP_NOACTIVATE))
+                return false;
+        }
+        Thread.Sleep(180);
+        return NativeMethods.GetWindowRect(handle, out var final)
+            && Math.Abs(final.Left - original.X) <= 3 && Math.Abs(final.Top - original.Y) <= 3
+            && Math.Abs(final.Right - final.Left - original.Width) <= 3
+            && Math.Abs(final.Bottom - final.Top - original.Height) <= 3;
     }
 
     public bool Focus(WindowKey key)
@@ -196,6 +238,17 @@ public sealed class WindowManager
     }
 
     public bool IsAlive(WindowKey key) => IsSameWindow(new IntPtr(key.Handle), key.ProcessId);
+
+    public static long? ProcessStartUtcTicks(uint pid)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(checked((int)pid));
+            return process.StartTime.ToUniversalTime().Ticks;
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException
+            or System.ComponentModel.Win32Exception or OverflowException) { return null; }
+    }
 
     /// <summary>
     /// Prefer the app's actual "New Window" menu command, following original Snug's
