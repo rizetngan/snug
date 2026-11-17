@@ -1154,7 +1154,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
         var now = DateTimeOffset.UtcNow;
         var signals = _uuDetector.Sample();
-        ConnectionDiagnostics = _uuDetector.LastSignalSummary;
+        ConnectionDiagnostics = _uuDetector.LastSignalSummary + " · " + _uuDetector.LocalControllerSummary;
         foreach (var transition in _connection.Update(signals, now))
             _phonePresentation.OnTransition(transition.Kind);
 

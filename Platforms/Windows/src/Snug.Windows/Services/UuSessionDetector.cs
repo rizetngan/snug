@@ -15,15 +15,19 @@ public sealed class UuSessionDetector
     private static readonly string DefaultLogDirectory = @"D:\GameViewer\log\server\log";
 
     private readonly object _gate = new();
+    private readonly UuControllerReader _controllerReader = new();
     private DateTimeOffset _lastPoll = DateTimeOffset.MinValue;
     private bool _polling;
     private UuSignals _cached = new(false, null, false);
 
+    public string LocalControllerSummary { get; private set; } = "未读取";
     public string LastSignalSummary { get; private set; } = "等待 UU 会话日志";
     public int? ServerProcessId { get; private set; }
 
     public UuSignals Sample()
     {
+        var local = _controllerReader.Sample();
+        LocalControllerSummary = local.Status;
         lock (_gate)
         {
             if (!_polling && DateTimeOffset.UtcNow - _lastPoll >= PollInterval)
@@ -31,7 +35,7 @@ public sealed class UuSessionDetector
                 _polling = true;
                 _ = Task.Run(Poll);
             }
-            return _cached;
+            return _cached with { Controllers = local.Controllers };
         }
     }
 
@@ -130,8 +134,9 @@ public sealed class UuSessionDetector
         {
             return false;
         }
-        catch (IOException)
+        catch (IOException error) when ((error.HResult & 0xFFFF) is 32 or 33)
         {
+            // Only a sharing/lock violation is evidence; other I/O failures are not sessions.
             return true;
         }
         catch (UnauthorizedAccessException)
