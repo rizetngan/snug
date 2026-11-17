@@ -93,3 +93,12 @@ When the HWND is destroyed, `AppController` moves the recoverable record from `p
 - 163/163 core tests pass (including mixed mobile/desktop controllers, transient departure, duplicate/reordered rows, wrong-machine page rejection, non-control mode exclusion, expiry, and unknown-controller compatibility); Release build 0 warnings/0 errors.
 - Live host probe 2026-11-17: installed GameViewer Qt 5 window has zero useful UI Automation descendants; MSAA probe exposes generic system-window structure rather than controller rows. Consequently the actual local-phone/desktop names are NOT verified on this UU build. No claim that live device classification has been solved. Preserve log-based fallback until reliable evidence becomes available.
 - Confirmed host booted the old installed 0.2.18 assembly from Program Files, not the 0.2.23 candidate. Admin token unavailable. Package upgrade requires standard UAC approval; portable validation is not installed-version validation.
+## 2026-11-17 formal installed upgrade to 0.2.24 — accepted
+- The previous installed release at C:\Program Files\Snug was 0.2.18, while 0.2.24 had been a nonpersistent portable candidate.
+- One standard Windows administrator UAC consent was received. Tools/Upgrade-InstalledSnug.ps1 only stopped the portable candidate *after* consent, via the application's normal UI, verified an absent active restore ledger, and ran the verified 0.2.24 Inno Setup installer.
+- Inno Setup returned exit code **0**; final C:\Program Files\Snug\Snug.Windows.dll and uninstall registry both now say **0.2.24**.
+- Official driver ownership marker still states managedBySnug=true, installState=installed, driverVersion=25.7.23, rebootRequired=false. Existing VDD continued to work without replacing external configuration.
+- After setup, the normal user's installed launcher started runtime PID 25720 from Program Files, with --background and a new phone VDD DISPLAY17. Running UI's settings text explicitly shows 0.2.24.
+- DPI-aware live screenshot: F:\snug for Windows\diagnostics\SNUG_INSTALLED_0.2.24_LIVE_VDD.png, **1080x1834 physical pixels**.
+- Session handoff log: F:\snug for Windows\diagnostics\UPGRADE_INSTALLED_0.2.24.log.
+- The standard desktop shortcut/startup registration now targets the installed 0.2.24, not a temporary .tools/dotnet.exe candidate. Reboot persistence is therefore configured, but a reboot cycle has **not** been exercised in this audit.
