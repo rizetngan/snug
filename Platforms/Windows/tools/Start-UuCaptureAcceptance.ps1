@@ -194,7 +194,7 @@ try{
             $putBack=$auditRows|Where-Object{$_.name-eq'EndPhoneSession'-and$_.value.stage-eq'after-putback'-and[DateTimeOffset]::Parse($_.utc).UtcDateTime -ge $endedSince}|Select-Object -Last 1
         }
         $returned=(($screens-join';')-eq($baseline-join';'))-and!$hasLedger
-        $windowRestored=(!$RequirePlacedWindow)-or($sawPlacedWindow-and$null-ne$putBack-and$putBack.value.putBackStatus-eq'窗口已还原')
+        $windowRestored=(!$RequirePlacedWindow)-or($sawPlacedWindow-and$null-ne$putBack-and$putBack.value.putBackSucceeded-eq$true)
         if($sawActive-and$sawScreenWhileActive-and$null-ne$inactiveSince-and$null-ne$endedSince-and$screenPresentAtEnded-and$null-ne$endStart-and$null-ne$displayStop-and$returned-and$windowRestored){
             if($null-eq$stableSince){$stableSince=$now}
             if($now-$stableSince -ge [TimeSpan]::FromSeconds(2)){

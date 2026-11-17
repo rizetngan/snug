@@ -1600,7 +1600,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _endingSession = true;
         UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "begin", connected = _connection.IsConnected, wantsPhoneScreen = _connection.WantsPhoneScreen(DateTimeOffset.UtcNow), dismissed = _phonePresentation.DismissedInEpisode, phoneScreenEnabled = PhoneScreenEnabled, placedWindow = _placed is not null, phoneDisplay = _phoneDisplay is not null });
         await PutBackAsync();
-        UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "after-putback", placedWindow = _placed is not null, putBackStatus = ActivityStatus });
+        UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "after-putback", placedWindow = _placed is not null, putBackStatus = ActivityStatus, putBackSucceeded = ActivityStatus == "窗口已还原" });
         if (_placed is not null)
         {
             UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "blocked-window-restore", placedWindow = true });
