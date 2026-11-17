@@ -6,7 +6,7 @@ namespace Snug.Windows.Services;
 
 /// <summary>
 /// Reads scoped controller-table evidence and legacy log compatibility hints.
-/// The optional ETW pilot can override sticky hints only with a fresh,
+/// The SYSTEM startup monitor overrides sticky hints only with a fresh,
 /// verified-generation, complete capture inventory.
 /// </summary>
 public sealed class UuSessionDetector : IDisposable
@@ -16,7 +16,7 @@ public sealed class UuSessionDetector : IDisposable
 
     private readonly object _gate = new();
     private readonly UuControllerReader _controllerReader = new();
-    private readonly UuCapturePilotReader? _capturePilot = UuCapturePilotReader.FromEnvironment();
+    private readonly UuCaptureMonitorReader? _captureMonitor = UuCaptureMonitorReader.FromEnvironment();
     private UuServerGeneration? _serverGeneration;
     private string _logSummary = "等待 UU 会话日志";
     private DateTimeOffset _lastPoll = DateTimeOffset.MinValue;
@@ -39,9 +39,9 @@ public sealed class UuSessionDetector : IDisposable
                 _ = Task.Run(Poll);
             }
             var current = _cached with { Controllers = local.Controllers };
-            if (_capturePilot is null) return current;
+            if (_captureMonitor is null) return current;
             var generation = DateTimeOffset.UtcNow - _lastPoll <= UuCaptureFeed.Freshness ? _serverGeneration : null;
-            var capture = _capturePilot.Sample(generation);
+            var capture = _captureMonitor.Sample(generation);
             LastSignalSummary = capture.Phase switch
             {
                 UuCapturePhase.Active => "ETW 捕获中 · 设备与屏幕未知",
@@ -67,7 +67,7 @@ public sealed class UuSessionDetector : IDisposable
             {
                 var pids = serverProcesses.Select(process => (uint)process.Id).ToHashSet();
                 serverPid = pids.Count == 0 ? null : (int)pids.OrderByDescending(value => value).First();
-                if (_capturePilot is not null && serverProcesses.Length == 1)
+                if (_captureMonitor is not null && serverProcesses.Length == 1)
                     generation = UuServerIdentity.ReadSingle();
 
                 if (pids.Count == 0)
@@ -114,7 +114,7 @@ public sealed class UuSessionDetector : IDisposable
             _polling = false;
             _logSummary = summary;
             _serverGeneration = generation;
-            if (_capturePilot is null) LastSignalSummary = summary;
+            if (_captureMonitor is null) LastSignalSummary = summary;
             ServerProcessId = serverPid;
         }
     }
@@ -183,5 +183,5 @@ public sealed class UuSessionDetector : IDisposable
 
         return DefaultLogDirectory;
     }
-    public void Dispose() => _capturePilot?.Dispose();
+    public void Dispose() => _captureMonitor?.Dispose();
 }

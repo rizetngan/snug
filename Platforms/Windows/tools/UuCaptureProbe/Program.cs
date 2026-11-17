@@ -12,6 +12,9 @@ internal static class Program
     public static int Main(string[] args)
     {
         if (args is ["--replay-disconnected", var report]) return CaptureReplay.Run(report);
+        if (args is ["--service", var serviceId, var serviceSid] &&
+            Guid.TryParse(serviceId, out var persistentFeedId))
+            return CaptureMonitor.Run(persistentFeedId, serviceSid).GetAwaiter().GetResult();
         if (args is [var mode,var id,var sid,var duration] &&
             mode is "--pilot" or "--pilot-disconnected" &&
             Guid.TryParse(id,out var feedId)&&int.TryParse(duration,out var limit))

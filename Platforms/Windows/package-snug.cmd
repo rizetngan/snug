@@ -6,6 +6,7 @@ call "%SNUG_ROOT%tools\Resolve-Dotnet.cmd"
 if errorlevel 1 exit /b %errorlevel%
 set "PACKAGE=%SNUG_ROOT%artifacts\package"
 set "BUILD_OUTPUT=%SNUG_ROOT%artifacts\release-build"
+set "CAPTURE_BUILD_OUTPUT=%SNUG_ROOT%artifacts\capture-monitor-build"
 set "RUNTIME_VERSION=10.0.15"
 if not exist "%DOTNET_ROOT%\shared\Microsoft.WindowsDesktop.App\%RUNTIME_VERSION%\PresentationFramework.dll" (
   echo Packaging requires Windows Desktop Runtime %RUNTIME_VERSION% in the selected SDK directory.
@@ -15,6 +16,8 @@ set "CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 
 rem Use a dedicated build directory so an open Snug preview cannot lock packaging DLLs.
 "%DOTNET_ROOT%\dotnet.exe" restore "%SNUG_ROOT%Snug.Windows.sln"
+if errorlevel 1 exit /b %errorlevel%
+"%DOTNET_ROOT%\dotnet.exe" restore "%SNUG_ROOT%tools\UuCaptureProbe\UuCaptureProbe.csproj"
 if errorlevel 1 exit /b %errorlevel%
 "%DOTNET_ROOT%\dotnet.exe" test "%SNUG_ROOT%Snug.Windows.sln" -c Release --no-restore
 if errorlevel 1 exit /b %errorlevel%
@@ -27,12 +30,27 @@ if exist "%BUILD_OUTPUT%" (
 "%DOTNET_ROOT%\dotnet.exe" build "%SNUG_ROOT%src\Snug.Windows\Snug.Windows.csproj" -c Release --no-restore "-p:OutDir=%BUILD_OUTPUT%/"
 if errorlevel 1 exit /b %errorlevel%
 
+rem Build the privileged UU capture monitor separately from the interactive WPF app.
+if exist "%CAPTURE_BUILD_OUTPUT%" rmdir /s /q "%CAPTURE_BUILD_OUTPUT%"
+if exist "%CAPTURE_BUILD_OUTPUT%" (
+  echo Cannot clean the capture monitor staging directory.
+  exit /b 1
+)
+"%DOTNET_ROOT%\dotnet.exe" build "%SNUG_ROOT%tools\UuCaptureProbe\UuCaptureProbe.csproj" -c Release --no-restore "-p:OutDir=%CAPTURE_BUILD_OUTPUT%/"
+if errorlevel 1 exit /b %errorlevel%
+
 if exist "%PACKAGE%" rmdir /s /q "%PACKAGE%"
 mkdir "%PACKAGE%"
 if errorlevel 1 exit /b %errorlevel%
 
 robocopy "%BUILD_OUTPUT%" "%PACKAGE%" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NC /NS /NP
 if errorlevel 8 exit /b %errorlevel%
+
+mkdir "%PACKAGE%\CaptureMonitor"
+robocopy "%CAPTURE_BUILD_OUTPUT%" "%PACKAGE%\CaptureMonitor" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NC /NS /NP
+if errorlevel 8 exit /b %errorlevel%
+copy /y "%SNUG_ROOT%installer\payload\CaptureMonitor\Install-SnugCaptureMonitor.ps1" "%PACKAGE%\CaptureMonitor\Install-SnugCaptureMonitor.ps1" >nul
+if errorlevel 1 exit /b %errorlevel%
 
 mkdir "%PACKAGE%\Runtime\host\fxr\%RUNTIME_VERSION%" 2>nul
 mkdir "%PACKAGE%\Runtime\shared\Microsoft.NETCore.App\%RUNTIME_VERSION%" 2>nul

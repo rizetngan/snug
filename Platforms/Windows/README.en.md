@@ -2,15 +2,15 @@
 
 [简体中文](README.md) · [English](README.en.md) · [Project home](../../README.en.md)
 
-Snug enhances display and touch interaction for UU Remote. This community contribution adds Windows support to [Snug](https://github.com/zephyr4123/snug) 2.5.0, keeping the original App Library, phone workspace, window restoration, gestures and screenshot workflow as well as macOS implementation and copyright history. Windows 0.2.33 is a preview pending upstream review, not an official upstream release.
+Snug enhances display and touch interaction for UU Remote. This community contribution adds Windows support to [Snug](https://github.com/zephyr4123/snug) 2.5.0, keeping the original App Library, phone workspace, window restoration, gestures and screenshot workflow as well as macOS implementation and copyright history. Windows 0.2.36 is a community preview pending upstream review, not an official upstream release.
 
 ## Installation and usage
 
-1. Install UU Remote and the Snug Windows x64 installer on the controlled computer. First installation requests administrator approval to deploy the signed virtual display driver.
+1. Install UU Remote and the Snug Windows x64 installer on the controlled computer. First installation requests administrator approval to deploy the signed virtual display driver and register the SYSTEM-level UU capture monitor startup task.
 2. Connect from your phone in UU Remote, select Snug Phone in the display list and use screen-touch mode.
 3. Open an app or window in the App Library; use the bottom bar to return. Snug manages window fitting, scrolling, long press and per-app text enlargement.
 4. Enable Screenshot in desktop Settings (off by default). Tap the camera when a window is placed; tap the thumbnail to crop and copy the result to the host clipboard.
-5. When UU inbound session information is unavailable, Snug displays compatibility mode / unknown device. This preserves the phone screen but does not confirm the connection, controller type or streamed monitor. If the display remains after disconnecting, turn off Phone Screen or quit Snug normally to restore the windows.
+5. The SYSTEM monitor observes UU's display-capture lifecycle and sends only fixed state metadata to Snug through a local one-way pipe. It can confirm capture activity, not the controller's device type or physical monitor identity. If the monitor starts late or loses ETW events, Snug deliberately falls back to unknown/compatibility mode instead of inventing a disconnected state.
 
 ## Build and package
 
@@ -27,20 +27,21 @@ SDK resolution: SNUG_DOTNET_ROOT, .tools/dotnet, DOTNET_ROOT, standard Program F
     .\build-snug.cmd
     .\package-snug.cmd
 
-The output is artifacts/installer/Snug-Setup-0.2.33-x64.exe. The installer bundles the pinned runtime and signed VDD; the installer itself is not signed. The app-scoped legacy CET compiler bridge preserves the SDK binaries and system security settings. On supported systems, -p:SnugUseLegacyWindowsCETWorkaround=false uses the native SDK compiler.
+The output is artifacts/installer/Snug-Setup-0.2.36-x64.exe. The installer bundles the pinned runtime and signed VDD; the installer itself is not signed. The app-scoped legacy CET compiler bridge preserves the SDK binaries and system security settings. On supported systems, -p:SnugUseLegacyWindowsCETWorkaround=false uses the native SDK compiler.
 
 ## Architecture
 
 - Snug.Windows.Core: platform-independent window and restoration state, screen fit, gesture and momentum logic, UU session evidence and screenshot geometry.
 - Snug.Windows: WPF interface and Windows system adapters.
-- installer: signed VDD 25.7.23 and NefCon 1.21.1. Only Snug-managed device resources are removed on uninstall.
+- installer: signed VDD 25.7.23 and NefCon 1.21.1, plus a SYSTEM startup task for the UU capture monitor. The monitor uses a user-scoped named pipe; only Snug-managed tasks and device resources are removed on uninstall.
 
 ## Validation and limitations
 
-224 core tests pass. Local Windows tests cover window placement/restoration, VS Code restart zoom recovery, Chrome tab input and two-axis scrolling, menu drag, force quit, native window capture and crop. Actual installed camera setting and return/restore were verified.
+253 core tests pass. Local Windows tests cover window placement/restoration, VS Code restart zoom recovery, Chrome tab input and two-axis scrolling, menu drag, force quit, native window capture and crop. Actual installed camera setting and return/restore were verified.
 Menu momentum passed WPF timer tests; full iPhone gesture and native clipboard acceptance are pending. VDD mode steps differ from macOS. Mixed physical-display configurations, some apps' zoom behavior, cross-virtual-desktop handling and protected/GPU window capture need wider testing.
 UU Windows does not currently expose a reliable inbound controller or streamed-display identity; locked logs are compatibility hints only. Manual upgrade only.
 
 ## Credits and license
 
 Original Snug author: zephyr4123. Project predecessor: UUyc-companion by AoyamaShou. Original copyright, history and community acknowledgments are preserved. Windows support additionally thanks Virtual Display Driver and NefCon. See the [MIT license](../../LICENSE) and [third-party notices](installer/THIRD_PARTY_NOTICES.md). Snug is not an official UU Remote product.
+After dismissing the phone screen, a temporary Re-enter Phone Screen button appears at the bottom-right of the primary desktop while the same phone episode is connected. Click to recreate the phone display, then select it in UU. It hides when the episode ends or Phone Screen is disabled.

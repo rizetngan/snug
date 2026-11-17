@@ -2,14 +2,14 @@ using System.Buffers.Binary;
 
 namespace Snug.Windows.Core;
 
-/// <summary>Fixed-size, one-way local pilot protocol. No commands or private
-/// capture payloads. The reader must independently verify process generation.</summary>
+/// <summary>Fixed-size, one-way local monitor protocol. No commands or private
+/// capture payloads. The reader independently verifies process generation.</summary>
 public readonly record struct UuCaptureFrame(Guid FeedId, long Sequence, DateTimeOffset ObservedAt,
     UuServerGeneration Server, UuCaptureSnapshot Capture)
 {
     public const int Size = 64;
     private const uint Magic = 0x31554353; // SCU1
-    public const string PipePrefix = "Snug-UU-Capture-Pilot-";
+    public const string PipePrefix = "Snug-UU-Capture-Monitor-";
     public static string PipeName(Guid id) => PipePrefix + id.ToString("N");
 
     public byte[] Encode()
@@ -80,4 +80,7 @@ public sealed class UuCaptureFeed(Guid expectedId)
     }
 
     public void Invalidate()=>_latest=null;
+
+    // A restarted monitor gets a new pipe connection and restarts its sequence.
+    public void Reset(){_latest=null;_lastSequence=0;}
 }

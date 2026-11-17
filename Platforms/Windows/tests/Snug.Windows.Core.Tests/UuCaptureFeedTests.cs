@@ -33,6 +33,15 @@ public sealed class UuCaptureFeedTests
         Assert.Null(f.Get(T,null).CaptureActive);
         f.Invalidate();Assert.Null(f.Get(T,Server).CaptureActive);
     }
+    [Fact] public void ResetAllowsSequenceRestartAfterMonitorReconnect()
+    {
+        var f = new UuCaptureFeed(Id);
+        Assert.True(f.Accept(Frame(9), T));
+        f.Reset();
+        Assert.True(f.Accept(Frame(1), T));
+        Assert.Equal(UuCapturePhase.Inactive, f.Get(T, Server).Phase);
+    }
+
     [Fact] public void ReorderedAndWrongFeedReject()
     {
         var f=new UuCaptureFeed(Id);Assert.True(f.Accept(Frame(2),T));
