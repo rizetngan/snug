@@ -66,17 +66,15 @@ public sealed class UuSessionDetector
                     var streamerLocked = IsCurrentSessionLogLocked(
                         logDirectory, "streamer_log_controlled_", pids);
 
-                    var inSession = connectionLocked || streamerLocked;
-                    var controller = inSession
-                        ? new ControllerInfo("UU Remote", ControllerKind.Unknown)
-                        : null;
-
+                    // These handles may be held for the server's entire lifetime.
+                    // Retain the compatibility hint, not a fabricated capture signal.
                     signals = new UuSignals(
                         OverlayVisible: false,
-                        Controller: controller,
-                        CaptureActive: streamerLocked);
+                        Controller: null,
+                        CaptureActive: null,
+                        LogFallback: connectionLocked || streamerLocked);
 
-                    summary = $"Server PID {serverPid} · connection {(connectionLocked ? "locked" : "idle")} · stream {(streamerLocked ? "locked" : "idle")}";
+                    summary = $"Server PID {serverPid} · connection {(connectionLocked ? "locked" : "idle")} · stream {(streamerLocked ? "locked" : "idle")} · 推流屏幕未知";
                 }
             }
             finally

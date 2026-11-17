@@ -66,7 +66,7 @@ internal sealed class UuControllerReader
                 if (watch.Elapsed <= FreshFor)
                 {
                     result = UuControllerTable.Read(roots);
-                    if (result.Count > 0) status = $"本机控制端已识别（{result.Count}）";
+                    if (result.Count > 0) status = $"本机控制端: {string.Join("、", result.Select(c => c.Name))}";
                 }
             }
             finally { foreach (var proc in procs) proc.Dispose(); }

@@ -1319,7 +1319,16 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _phonePresentation.OnTransition(transition.Kind);
 
         IsConnected = _connection.IsConnected;
-        ConnectionStatus = IsConnected ? "UU 远程已连接" : "等待 UU 远程";
+        ConnectionStatus = !IsConnected ? "等待 UU 远程" : signals.Evidence switch
+        {
+            UuEvidenceKind.ControllerTable => "UU 已连接 · " +
+                (signals.Controllers?.Any(c => c.Kind == ControllerKind.Phone) == true ||
+                 signals.Controller?.Kind == ControllerKind.Phone ? "手机或平板" :
+                 signals.Controllers is { Count: > 0 } names && names.All(c => c.Kind == ControllerKind.Desktop) ||
+                 signals.Controller?.Kind == ControllerKind.Desktop ? "电脑" : "设备未知"),
+            UuEvidenceKind.Session => "UU 已连接 · 设备未知",
+            _ => "UU 兼容模式 · 设备未知"
+        };
 
         if (now - _lastDisplayScan > TimeSpan.FromSeconds(2))
         {

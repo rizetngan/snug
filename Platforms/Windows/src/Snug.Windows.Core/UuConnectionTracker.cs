@@ -7,11 +7,24 @@ public readonly record struct UuSignals(
     bool OverlayVisible,
     ControllerInfo? Controller,
     bool? CaptureActive,
-    IReadOnlyList<ControllerInfo>? Controllers = null)
+    IReadOnlyList<ControllerInfo>? Controllers = null,
+    bool LogFallback = false)
 {
     public bool IsPresent => OverlayVisible || Controller is not null ||
-        Controllers is { Count: > 0 } || CaptureActive == true;
+        Controllers is { Count: > 0 } || CaptureActive == true || LogFallback;
+
+    // A compatibility hint can sustain the existing phone-screen policy,
+    // but must never be presented as a verified inbound connection.
+    public UuEvidenceKind Evidence =>
+        Controllers is { Count: > 0 } || Controller is { } item &&
+            !(item.Kind == ControllerKind.Unknown && item.Name == "UU Remote")
+            ? UuEvidenceKind.ControllerTable
+            : OverlayVisible || CaptureActive == true ? UuEvidenceKind.Session
+            : LogFallback || Controller is not null ? UuEvidenceKind.LogFallback
+            : UuEvidenceKind.None;
 }
+
+public enum UuEvidenceKind { None, LogFallback, Session, ControllerTable }
 
 public enum ConnectionTransitionKind { Connected, Resumed, ControllerChanged, Interrupted, Ended }
 public sealed record ConnectionTransition(ConnectionTransitionKind Kind, ControllerInfo? Controller);
