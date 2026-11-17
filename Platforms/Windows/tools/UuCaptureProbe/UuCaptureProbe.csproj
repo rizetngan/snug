@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="4.0.0" />
+    <ProjectReference Include="..\..\src\Snug.Windows.Core\Snug.Windows.Core.csproj" />
   </ItemGroup>
 </Project>

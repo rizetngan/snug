@@ -10,3 +10,10 @@ Controlled experiment: first establish explicitly disconnected baseline; begin t
 
 The existing .slog files contained binary-like data; do not decode protected logs, read credentials, or use undocumented UU APIs. Existing read-only log compatibility behavior remains separate.
 Second-pass diagnostics add IDs 192/193 (separate diagnostic context-index namespace), IDs 1074/1075 (aggregate count of operations on previously attributed capture contexts), adapter-handle ordinals, and pointer-correlated destroy candidates. Header attribution is classified as Server, Kernel, or OtherProcessCandidate; the latter is not confirmed ownership. No raw pointers, frames, input or foreign process identity are emitted. Counters of all observed event IDs help distinguish missing events from an attribution gap. Adapter ordinal + source ID is a probe-local fingerprint, not a proven physical monitor name. Capture activity is not proof of a live remote session in an idle or cached-capture scenario.
+### Validated 192/193 lifecycle replay
+
+The second real iPhone experiment produced three direct server diagnostic connect/destroy pairs. For this exact controlled experiment, with a user-confirmed empty initial inventory, run:
+
+    dotnet UuCaptureProbe.dll --replay-disconnected <completed-second-report.jsonl>
+
+It checks zero missing/failed/unattributed events, one stable server generation, paired contexts, two switch rebuilds, final teardown, and the existing connection tracker's expiry even with sticky log hints. Offline replay does not modify the UI or require elevated privileges. The state machine treats late attachment or an unhealthy trace as unknown; it does not treat silence as disconnect. The current installed application does not consume this event source yet.
