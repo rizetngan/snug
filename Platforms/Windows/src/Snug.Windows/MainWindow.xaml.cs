@@ -67,11 +67,7 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        System.Windows.MessageBox.Show(this,
-            $"Snug for Windows  {typeof(MainWindow).Assembly.GetName().Version}\n\n" +
-            "Windows 版使用官方 Virtual Display Driver 创建独立手机屏。\n" +
-            "原项目：https://github.com/zephyr4123/snug",
-            "关于 Snug", MessageBoxButton.OK, MessageBoxImage.Information);
+        new AboutWindow { Owner = this }.ShowDialog();
     }
 
     private async void Exit_Click(object sender, RoutedEventArgs e) => await _exitAsync();

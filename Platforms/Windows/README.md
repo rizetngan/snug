@@ -1,6 +1,8 @@
-# Snug for Windows
+# Snug · Windows 平台支持
 
-Windows 平台移植，基于 [Snug](https://github.com/zephyr4123/snug) 2.5.0 (MIT)，保留原项目及其 macOS 构建。Windows 0.2.32 是独立验证版本，尚未获得上游发布。
+[简体中文](README.md) · [English](README.en.md) · [项目主页](../../README.md)
+
+Snug 为 UU远程 提供手机原生级的显示与触控体验。本贡献在 [原项目](https://github.com/zephyr4123/snug) 2.5.0 基础上新增 Windows 平台支持，延续原版 App 资源库、手机屏、窗口还原、触控与截图交互，保留 macOS 实现及原有版权。Windows 0.2.33 为待上游审阅的社区贡献预览，非已发布的官方 Windows 版本。
 
 ## 使用
 
@@ -29,7 +31,7 @@ PowerShell 示例：
     .\build-snug.cmd
     .\package-snug.cmd
 
-输出：artifacts/installer/Snug-Setup-0.2.32-x64.exe。安装包内置指定 .NET runtime，无需目标电脑另外安装 SDK。驱动分发许可、版本及校验见 installer/THIRD_PARTY_NOTICES.md；安装器本身尚未签名。支持 CET 的系统可用 -p:SnugUseLegacyWindowsCETWorkaround=false 使用 SDK 原生编译路径。
+输出：artifacts/installer/Snug-Setup-0.2.33-x64.exe。安装包内置指定 .NET runtime，无需目标电脑另外安装 SDK。驱动分发许可、版本及校验见 installer/THIRD_PARTY_NOTICES.md；安装器本身尚未签名。支持 CET 的系统可用 -p:SnugUseLegacyWindowsCETWorkaround=false 使用 SDK 原生编译路径。
 
 ## 架构
 
@@ -43,7 +45,7 @@ PowerShell 示例：
 - 菜单惯性经过真实 WPF 定时器测试；完整实机手势及真实剪贴板写入尚待验收。实际手机端仍需要一轮完整检查。
 - Windows 使用固定的 VDD 支持模式，动态宽度步长为 20 点；多物理屏恢复、部分应用字号、跨虚拟桌面、GPU/受保护窗口的截图兼容仍待测试。
 - Windows UU 版本的辅助功能、官方 CLI 和日志尚不能稳定暴露入站设备类型、推流屏幕和真实断开。日志仅作为显式兼容模式，不做设备身份或推流状态的确认。
-- 自动更新不在本次移植范围。本分支不是官方 Windows 发布，也不是与 macOS 完全等效的宣称。
+- Windows 当前采用手动安装升级；实际设备识别及其他平台差异见上文。
 
 ## 测试
 
@@ -51,4 +53,6 @@ PowerShell 示例：
 
 使用非默认 SDK 时先设置 SNUG_DOTNET_ROOT；测试/构建脚本可直接使用相同路径。PhoneUiSmoke.ps1 支持独立 UI 预览（不等同于真实手机验收）；CapturePhoneVdd.ps1 通过 PMv2 获取真实物理像素；MenuDragProbe 支持 --programmatic 进行不抢占鼠标的惯性定时器验证。探测 UU 的工具 Probe-UuLocalController.ps1 仅用于本地只读诊断。
 
-MIT 许可和上游版权保留，macOS 原有源码不需要改动。
+## 致谢与许可
+
+Snug 原作者 zephyr4123，项目前身 UUyc-companion（AoyamaShou）。延续原版的完整版权、提交历史和社区致谢；Windows 平台另感谢 Virtual Display Driver 与 NefCon。见仓库根目录 [MIT 许可证](../../LICENSE) 与 [第三方许可](installer/THIRD_PARTY_NOTICES.md)。Snug 非 UU远程 官方软件。

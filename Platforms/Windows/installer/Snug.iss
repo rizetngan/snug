@@ -1,11 +1,17 @@
 #define AppName "Snug for Windows"
-#define AppVersion "0.2.32"
+#define AppVersion "0.2.33"
 #define AppExeName "SnugLauncher.exe"
 
 [Setup]
 AppId={{6A9A3C8D-9C6F-4F8B-AF5E-21B6A5B5F4E1}
 AppName={#AppName}
 AppVersion={#AppVersion}
+AppPublisher=Snug contributors
+AppPublisherURL=https://github.com/zephyr4123/snug
+AppSupportURL=https://github.com/zephyr4123/snug/issues
+VersionInfoProductName=Snug
+VersionInfoDescription=Snug - Windows platform support (community preview)
+VersionInfoCopyright=Copyright (c) 2026 AoyamaShou; Copyright (c) 2026 zephyr4123
 DefaultDirName={autopf}\Snug
 DefaultGroupName=Snug
 UninstallDisplayIcon={app}\Snug.ico

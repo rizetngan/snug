@@ -11,11 +11,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Snug.Windows</AssemblyName>
     <RootNamespace>Snug.Windows</RootNamespace>
-    <Version>0.2.32</Version>
+    <Version>0.2.33</Version>
+    <Product>Snug</Product>
+    <Description>Snug — Windows platform support for the original mobile remote workspace.</Description>
+    <Copyright>Copyright (c) 2026 AoyamaShou; Copyright (c) 2026 zephyr4123</Copyright>
+    <RepositoryUrl>https://github.com/zephyr4123/snug</RepositoryUrl>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Snug.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="SnugUpstreamVersion" Value="2.5.0" />
     <ProjectReference Include="..\Snug.Windows.Core\Snug.Windows.Core.csproj" />
     <Content Include="Snug.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\installer\payload\Driver\Install-SnugDriver.ps1" Link="Driver\Install-SnugDriver.ps1" CopyToOutputDirectory="PreserveNewest" />
