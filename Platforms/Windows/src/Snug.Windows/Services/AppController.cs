@@ -25,6 +25,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private readonly UuConnectionTracker _connection = new();
     private readonly PhoneSessionPresentation _phonePresentation = new();
     private readonly MouseGestureHook _gestureHook = new();
+    private readonly Screenshots _screenshots = new(new WindowScreenshotService());
+    private ScreenshotPanelWindow? _screenshotPanel;
     private readonly VddDriverClient _driver = new();
     private readonly PhoneDisplayModeSwitcher _modeSwitcher = new();
     private readonly SemaphoreSlim _modeGate = new(1, 1);
@@ -38,7 +40,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     // Unlike the active single-window ledger, this book survives a destroyed HWND.
     private readonly LeftBehindBook _leftBehind = new(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Snug", "left-behind.json"));    private readonly DispatcherTimer _timer;
+        "Snug", "left-behind.json"));
+    private readonly DispatcherTimer _timer;
 
     private DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
     private DateTimeOffset _lastDisplayScan = DateTimeOffset.MinValue;
@@ -132,6 +135,48 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         }
     }
 
+    public bool ScreenshotEnabled
+    {
+        get => _settings.ScreenshotEnabled;
+        set {
+            if (_settings.ScreenshotEnabled == value) return;
+            _settings.ScreenshotEnabled = value;
+            OnPropertyChanged();
+            SaveSettings();
+            if(!value) _screenshots.Dismiss();
+            _homeBar?.SetCameraVisible(value);
+        }
+    }
+
+    public async Task TakeScreenshotAsync()
+    {
+        if(!ScreenshotEnabled || _showingPhoneList || _phoneDisplay is null || _placed is not { } record || _previewOpen) return;
+        await _screenshots.TakeAsync(record.Key, () => !_disposed && ScreenshotEnabled &&
+            !_showingPhoneList && _phoneDisplay is not null && _placed?.Key == record.Key &&
+            _windowManager.IsAlive(record.Key));
+    }
+    public void OpenScreenshotCrop() => _screenshots.OpenCrop();
+    public void CancelScreenshotCrop() => _screenshots.CancelCrop();
+    public void FinishScreenshotCrop(CropRect selection) => _screenshots.FinishCrop(selection);
+
+    private void SyncScreenshotOverlay()
+    {
+        _screenshotPanel?.Close();
+        _screenshotPanel=null;
+        if(_disposed) return;
+        if(_phoneDisplay is { } display && !_showingPhoneList && _placed is not null && _screenshots.Overlay is { } shot)
+        {
+            if(_screenshots.IsCropping) _homeBar?.Hide();
+            else ShowHomeBar(display);
+            _screenshotPanel=new ScreenshotPanelWindow(this,shot);
+            _screenshotPanel.PlaceOn(display);
+            _screenshotPanel.Show();
+        }
+        else if(_phoneDisplay is { } current && !_showingPhoneList && _placed is not null && !_endingSession)
+            ShowHomeBar(current);
+        SyncGestures();
+    }
+
     public bool LaunchAtLogin
     {
         get => _launchAtLogin;
@@ -202,6 +247,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _appCatalog = new AppCatalogService(_windowManager);
         _gestureHook.PlacedWindowKey = () => _placed?.Key;
         _gestureHook.NativeCloseTapped += OnNativeCloseTapped;
+        _screenshots.Changed += SyncScreenshotOverlay;
         _zoomBook = new ZoomBook(_settings.AppZoomSteps);
         _phoneScreenEnabled = _settings.PhoneScreenEnabled;
         _gesturesEnabled = _settings.GesturesEnabled;
@@ -950,6 +996,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _phoneSurface?.PlaceOn(found);
             _homeBar?.PlaceOn(found);
             _appBackBar?.PlaceOn(found);
+            _screenshotPanel?.PlaceOn(found);
             _gestureHook.SetRegion(found, TouchScale());
             SyncGestures();
             RefreshDisplays();
@@ -1155,6 +1202,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     private async Task PutBackCoreAsync()
     {
+        _screenshots.Dismiss();
         var record = _placed ?? _ledger.Load();
         if (record is null) return;
 
@@ -1217,6 +1265,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public void ShowPhoneList()
     {
         _showingPhoneList = true;
+        _screenshots.Dismiss();
         OnPropertyChanged(nameof(PlacedWindowKey));
         OnPropertyChanged(nameof(PlacedAppName));
         _homeBar?.Hide();
@@ -1246,6 +1295,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     private void OnTick(object? sender, EventArgs e)
     {
+        _screenshots.Expire();
+        if (_screenshots.Overlay is not null &&
+            (_phoneDisplay is null || _placed is null || _showingPhoneList ||
+             !_windowManager.IsAlive(_placed.Key)))
+            _screenshots.Dismiss();
         // On Windows 10, the secondary monitor taskbar may promote itself after
         // the VDD mode settles. Keep upstream's HomeBar visible without taking
         // keyboard focus; the method is a no-op unless that taskbar overlaps it.
@@ -1437,7 +1491,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     private void ShowHomeBar(DisplayInfo display)
     {
+        if (_screenshots.IsCropping) return;
         _homeBar ??= new HomeBarWindow(this);
+        _homeBar.SetCameraVisible(ScreenshotEnabled);
         _homeBar.PlaceOn(display);
         _homeBar.Show();
     }
@@ -1480,7 +1536,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private void SyncGestures()
     {
         if (!GesturesEnabled || _phoneDisplay is null || !_connection.IsConnected
-            || _phoneSurface?.IsVisible == true)
+            || _phoneSurface?.IsVisible == true || _screenshots.IsCropping)
         {
             _gestureHook.Stop();
             _gestureHook.SetRegion(null);
@@ -1753,6 +1809,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        _screenshots.Changed -= SyncScreenshotOverlay;
+        _screenshots.Dismiss();
+        _screenshotPanel?.Close();
+        _screenshotPanel = null;
         _timer.Stop();
         _timer.Tick -= OnTick;
         _gestureHook.Dispose();

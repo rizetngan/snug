@@ -79,6 +79,12 @@
                     </DockPanel>
                     <Separator Margin="0,17" Background="#263650" Height="1"/>
                     <DockPanel>
+                        <TextBlock Text="截图" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <ToggleButton Style="{StaticResource SwitchStyle}" IsChecked="{Binding ScreenshotEnabled, Mode=TwoWay}"
+                                      AutomationProperties.Name="截图" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <Separator Margin="0,17" Background="#263650" Height="1"/>
+                    <DockPanel>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="字号放大" FontSize="14" FontWeight="SemiBold"/>
                             <TextBlock Text="{Binding DefaultZoomSteps, StringFormat={}{0} 级}"

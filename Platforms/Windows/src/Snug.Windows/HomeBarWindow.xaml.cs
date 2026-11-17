@@ -29,6 +29,8 @@ public partial class HomeBarWindow : Window
         Top = 0;
         Width = display.Bounds.Width / display.DpiScaleX;
         Height = ScreenFit.HomeBarHeight(display.Bounds.Width) / display.DpiScaleY;
+        CameraButton.Width = 54 * Math.Max(1.0, display.Bounds.Width / (double)ScreenFit.DesignWidth) / display.DpiScaleX;
+        CameraGlyph.Width = CameraGlyph.Height = 20 * Math.Max(1.0, display.Bounds.Width / (double)ScreenFit.DesignWidth) / display.DpiScaleX;
         if (IsLoaded) ApplyPlacement();
     }
 
@@ -97,6 +99,15 @@ public partial class HomeBarWindow : Window
 
     // The original HomeBarView handles a short upward swipe as an alternative
     // to tapping the chevron. Windows UU may forward either mouse or touch input.
+    public void SetCameraVisible(bool visible) =>
+        CameraButton.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+
+    private async void Capture_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_swipeActivated) await _controller.TakeScreenshotAsync();
+        _swipeActivated = false;
+    }
+
     private double? _swipeStart;
     private double _wheelDistance;
     private bool _swipeActivated;
@@ -120,7 +131,12 @@ public partial class HomeBarWindow : Window
 
     private void EndSwipe() => _swipeStart = null;
 
-    private void OnSwipeDown(object sender, MouseButtonEventArgs e) => BeginSwipe(e.GetPosition(this).Y);
+    private void OnSwipeDown(object sender, MouseButtonEventArgs e)
+    {
+        var p=e.GetPosition(this);
+        if (CameraButton.IsVisible && p.X < CameraButton.ActualWidth) { EndSwipe(); _swipeActivated=false; return; }
+        BeginSwipe(p.Y);
+    }
     private void OnSwipeMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (e.LeftButton == MouseButtonState.Pressed) ContinueSwipe(e.GetPosition(this).Y);
@@ -144,7 +160,12 @@ public partial class HomeBarWindow : Window
         }
     }
 
-    private void OnTouchDown(object sender, TouchEventArgs e) => BeginSwipe(e.GetTouchPoint(this).Position.Y);
+    private void OnTouchDown(object sender, TouchEventArgs e)
+    {
+        var p=e.GetTouchPoint(this).Position;
+        if (CameraButton.IsVisible && p.X < CameraButton.ActualWidth) { EndSwipe(); _swipeActivated=false; return; }
+        BeginSwipe(p.Y);
+    }
     private void OnTouchMove(object sender, TouchEventArgs e) => ContinueSwipe(e.GetTouchPoint(this).Position.Y);
     private void OnTouchUp(object sender, TouchEventArgs e)
     {

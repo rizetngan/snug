@@ -14,7 +14,7 @@
           PreviewTouchDown="OnTouchDown"
           PreviewTouchMove="OnTouchMove"
           PreviewTouchUp="OnTouchUp">
-        <Button Click="ShowList_Click"
+        <Button x:Name="ReturnButton" Click="ShowList_Click"
                 ToolTip="返回 App 资源库"
                 AutomationProperties.Name="返回 App 资源库"
                 Background="Transparent" BorderThickness="0"
@@ -25,6 +25,15 @@
                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                   StrokeLineJoin="Round"
                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Button>
+        <Button x:Name="CameraButton" Visibility="Collapsed" HorizontalAlignment="Left"
+                Width="64" Background="#F2F2F7" BorderThickness="0" Padding="0"
+                ToolTip="截图" AutomationProperties.Name="截图"
+                Click="Capture_Click">
+            <Viewbox x:Name="CameraGlyph" Width="20" Height="20" Stretch="Uniform">
+                <Path Data="M 2,8 L 2,2 L 8,2 M 16,2 L 22,2 L 22,8 M 22,16 L 22,22 L 16,22 M 8,22 L 2,22 L 2,16 M 12,7 A 5,5 0 1 1 11.99,7"
+                      Stroke="#86868F" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+            </Viewbox>
         </Button>
     </Grid>
 </Window>

@@ -9,6 +9,7 @@ public sealed class SnugSettings
 {
     public bool PhoneScreenEnabled { get; set; } = true;
     public bool GesturesEnabled { get; set; } = true;
+    public bool ScreenshotEnabled { get; set; }
     public int ZoomSteps { get; set; } = 2;
     public string PhoneModel { get; set; } = "Apple iPhone 17 Pro Max";
     public int PhoneScreenWidth { get; set; } = 1320;
