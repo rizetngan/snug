@@ -33,6 +33,33 @@ using System.Runtime.InteropServices;
 public static class SnugPilotPipe {
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]
     public static extern bool WaitNamedPipe(string name,uint milliseconds);
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public struct RECT { public int Left,Top,Right,Bottom; }
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential,CharSet=System.Runtime.InteropServices.CharSet.Unicode)]
+    public struct MONITORINFOEX {
+        public int cbSize; public RECT rcMonitor,rcWork; public uint dwFlags;
+        [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValTStr,SizeConst=32)] public string szDevice;
+    }
+    public delegate bool Callback(System.IntPtr monitor,System.IntPtr hdc,ref RECT rect,System.IntPtr data);
+    [DllImport("user32.dll")] static extern bool EnumDisplayMonitors(System.IntPtr hdc,System.IntPtr clip,Callback callback,System.IntPtr data);
+    [DllImport("user32.dll",CharSet=System.Runtime.InteropServices.CharSet.Unicode)] static extern bool GetMonitorInfo(System.IntPtr monitor,ref MONITORINFOEX info);
+    public class ScreenInfo {
+        public string Name {get;set;}
+        public bool Primary {get;set;}
+        public string Description {get;set;}
+    }
+    public static ScreenInfo[] Screens(){
+        var list=new System.Collections.Generic.List<ScreenInfo>();
+        Callback cb=delegate(System.IntPtr m,System.IntPtr h,ref RECT r,System.IntPtr d){
+            var i=new MONITORINFOEX(); i.cbSize=Marshal.SizeOf(typeof(MONITORINFOEX));
+            if(!GetMonitorInfo(m,ref i)) return true;
+            RECT a=i.rcMonitor;
+            list.Add(new ScreenInfo{Name=i.szDevice,Primary=(i.dwFlags&1)!=0,Description=i.szDevice+" {X="+a.Left+",Y="+a.Top+",Width="+(a.Right-a.Left)+",Height="+(a.Bottom-a.Top)+"}"});
+            return true;
+        };
+        if(!EnumDisplayMonitors(System.IntPtr.Zero,System.IntPtr.Zero,cb,System.IntPtr.Zero)) throw new System.InvalidOperationException("Monitor enumeration failed");
+        return list.ToArray();
+    }
 }
 "@
 $root=[System.Windows.Automation.AutomationElement]::RootElement
@@ -63,8 +90,8 @@ function Stop-SnugGracefully([int]$procId,[string]$expectedDll){
     }
     throw 'Snug normal exit did not finish'
 }
-$primary=[Windows.Forms.Screen]::PrimaryScreen.DeviceName
-$originalScreens=@([Windows.Forms.Screen]::AllScreens|ForEach-Object{$_.DeviceName+' '+$_.Bounds.ToString()})
+$primary=([SnugPilotPipe]::Screens()|Where-Object Primary|Select-Object -First 1).Name
+$originalScreens=@([SnugPilotPipe]::Screens()|ForEach-Object{$_.Description})
 'PREFLIGHT=PASS'
 'PRIMARY='+$primary
 'INITIAL_SCREENS='+($originalScreens-join';')
@@ -86,7 +113,7 @@ $helper=$null
 try{
     Record 'OperatorConfirmedEmpty' $true
     # Normal UAC request first. Declining it leaves installed runtime untouched.
-    $helper=Start-Process $DotnetPath -ArgumentList @('"'+$HelperDll+'"','--pilot-disconnected',$id,$sid,'300') -Verb RunAs -PassThru
+    $helper=Start-Process $DotnetPath -ArgumentList @('"'+$HelperDll+'"','--pilot-disconnected',$id,$sid,'600') -Verb RunAs -PassThru
     Record 'HelperStarted' $true
     # Wait for the helper's outbound pipe to exist without consuming its sole connection.
     $ready=$false
@@ -101,13 +128,13 @@ try{
     # This supervised acceptance targets the currently verified single
     # physical-display test machine. Do not guess which display is Snug's.
     for($i=0;$i-lt40;$i++){
-        if([Windows.Forms.Screen]::AllScreens.Count-eq1){break}
+        if(([SnugPilotPipe]::Screens()).Count-eq1){break}
         Start-Sleep -Milliseconds 250
     }
-    if([Windows.Forms.Screen]::AllScreens.Count-ne1-or[Windows.Forms.Screen]::PrimaryScreen.DeviceName-ne$primary){
+    if(([SnugPilotPipe]::Screens()).Count-ne1-or([SnugPilotPipe]::Screens()|Where-Object Primary|Select-Object -First 1).Name-ne$primary){
         throw 'Expected unchanged single physical display after normal exit'
     }
-    $baseline=@([Windows.Forms.Screen]::AllScreens|ForEach-Object{$_.DeviceName+" "+$_.Bounds.ToString()})
+    $baseline=@([SnugPilotPipe]::Screens()|ForEach-Object{$_.Description})
     Record 'AfterNormalExit' $baseline
     $previous=$env:SNUG_UU_CAPTURE_PILOT
     $priorAudit=$env:SNUG_UU_CAPTURE_PILOT_AUDIT; $auditPath=$ReportPath+".states.jsonl"
@@ -119,25 +146,44 @@ try{
     Record 'CandidateStarted' $candidate.Id
     # Poll physical topology and lifecycle diagnostics only; no screenshots,
     # user application names, window content or input events.
-    $limit=[DateTime]::UtcNow.AddSeconds(230)
-    $last=$null; $readyForPhone=$false; $baselineDeadline=[DateTime]::UtcNow.AddSeconds(20)
+    $limit=[DateTime]::UtcNow.AddSeconds(540)
+    $last=$null; $readyForPhone=$false; $baselineDeadline=[DateTime]::UtcNow.AddSeconds(20); $sawActive=$false; $inactiveSince=$null; $stableSince=$null; $releaseConfirmed=$false
     while([DateTime]::UtcNow-lt$limit-and!$candidate.HasExited-and!$helper.HasExited){
-        $screens=@([Windows.Forms.Screen]::AllScreens|ForEach-Object{$_.DeviceName+' '+$_.Bounds.ToString()})
+        $screens=@([SnugPilotPipe]::Screens()|ForEach-Object{$_.Description})
         $hasLedger=Test-Path $ledger
         $phase='Awaiting'
         if(Test-Path $auditPath){
             try{$phase=(Get-Content -LiteralPath $auditPath -Tail 1 -Encoding UTF8|ConvertFrom-Json).phase}catch{}
         }
+        $now=[DateTime]::UtcNow
         $snapshot=[ordered]@{screens=$screens;placed=$hasLedger;phase=$phase}
         if(!$readyForPhone-and$phase-eq'Inactive'-and(($screens-join';')-eq($baseline-join';'))-and!$hasLedger){
             $readyForPhone=$true;Record 'ReadyForPhone' $true
         }
-        if(!$readyForPhone-and[DateTime]::UtcNow-gt$baselineDeadline){throw 'Verified inactive baseline not reached'}
+        if(!$readyForPhone-and$now-gt$baselineDeadline){throw 'Verified inactive baseline not reached'}
+        if($phase-eq'Active'){$sawActive=$true;$inactiveSince=$null;$stableSince=$null}
+        if($sawActive-and$phase-eq'Inactive'-and$null-eq$inactiveSince){
+            $inactiveSince=$now;Record 'InactiveObserved' $true
+        }
+        $returned=(($screens-join';')-eq($baseline-join';'))-and!$hasLedger
+        if($sawActive-and$null-ne$inactiveSince-and$returned){
+            if($null-eq$stableSince){$stableSince=$now}
+            if($now-$stableSince -ge [TimeSpan]::FromSeconds(2)){
+                $releaseConfirmed=$true;Record 'AutoReleaseConfirmed' @{secondsAfterInactive=[Math]::Round(($now-$inactiveSince).TotalSeconds,2);screenCount=$screens.Count;placed=$hasLedger}
+                $key=$snapshot|ConvertTo-Json -Compress
+                if($key-ne$last){Record 'Topology' $snapshot;$last=$key}
+                break
+            }
+        }else{$stableSince=$null}
+        if($null-ne$inactiveSince-and$now-$inactiveSince -ge [TimeSpan]::FromSeconds(45)-and!$releaseConfirmed){
+            Record 'AutoReleaseNotObserved' @{secondsAfterInactive=45;screenCount=$screens.Count;placed=$hasLedger}
+            break
+        }
         $key=$snapshot|ConvertTo-Json -Compress
         if($key-ne$last){Record 'Topology' $snapshot;$last=$key}
         Start-Sleep -Milliseconds 500
     }
-    Record 'ObservationEnded' $true
+    Record 'ObservationEnded' @{releaseConfirmed=$releaseConfirmed;sawActive=$sawActive}
 }finally{
     try{
         if($candidate-and!$candidate.HasExited){

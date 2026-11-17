@@ -47,6 +47,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private DateTimeOffset _lastDisplayScan = DateTimeOffset.MinValue;
     private DateTimeOffset _lastWindowScan = DateTimeOffset.MinValue;
     private DateTimeOffset _lastDriverScan = DateTimeOffset.MinValue;
+    private DateTimeOffset _lastAcceptanceAuditAt = DateTimeOffset.MinValue;
     private DisplayInfo? _availableSnugDisplay;
     private DisplayInfo? _phoneDisplay;
     private bool _endingSession;
@@ -1315,8 +1316,30 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var now = DateTimeOffset.UtcNow;
         var signals = _uuDetector.Sample();
         ConnectionDiagnostics = _uuDetector.LastSignalSummary + " · " + _uuDetector.LocalControllerSummary;
-        foreach (var transition in _connection.Update(signals, now))
+        var transitions = _connection.Update(signals, now);
+        foreach (var transition in transitions)
             _phonePresentation.OnTransition(transition.Kind);
+
+        var wantsPhoneScreen = _connection.WantsPhoneScreen(now);
+        if (transitions.Count > 0 || now - _lastAcceptanceAuditAt >= TimeSpan.FromSeconds(1))
+        {
+            UuCaptureAcceptanceAudit.Record("SessionState", new
+            {
+                captureActive = signals.CaptureActive,
+                logFallback = signals.LogFallback,
+                isPresent = signals.IsPresent,
+                controllerCount = signals.Controllers?.Count ?? (signals.Controller is null ? 0 : 1),
+                controllerKinds = signals.Controllers?.Select(c => c.Kind.ToString()).ToArray(),
+                connected = _connection.IsConnected,
+                wantsPhoneScreen,
+                transitions = transitions.Select(t => t.Kind.ToString()).ToArray(),
+                phoneDisplay = _phoneDisplay is not null,
+                placedWindow = _placed is not null,
+                snugDisplay = _displayEnumerator.FindSnugDisplay() is not null,
+                driverManaged = _driver.IsManagedBySnug
+            });
+            _lastAcceptanceAuditAt = now;
+        }
 
         IsConnected = _connection.IsConnected;
         ConnectionStatus = !IsConnected ? "等待 UU 远程" : signals.Evidence switch
@@ -1354,7 +1377,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _ = RefreshDriverStatusAsync();
         }
 
-        if (_phonePresentation.ShouldPresent(_connection.WantsPhoneScreen(now)) && PhoneScreenEnabled)
+        if (_phonePresentation.ShouldPresent(wantsPhoneScreen) && PhoneScreenEnabled)
         {
             if (_phoneDisplay is null && !_creatingSession) _ = StartPhoneSessionAsync();
         }
@@ -1413,6 +1436,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         if (_creatingSession || _disposed) return;
         _creatingSession = true;
+        UuCaptureAcceptanceAudit.Record("StartPhoneSession", new { stage = "begin", driverManaged = _driver.IsManagedBySnug });
         _orphanCleanupStarted = false;
         DisplayStatus = "正在创建手机屏";
         ActivityStatus = "正在创建手机屏";
@@ -1454,6 +1478,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             {
                 DisplayStatus = $"Snug 手机屏 · {_phoneDisplay!.Bounds.Width} × {_phoneDisplay.Bounds.Height}";
                 ActivityStatus = "手机屏已就绪";
+                UuCaptureAcceptanceAudit.Record("StartPhoneSession", new { stage = "ready", displayFound = true });
             }
             else
             {
@@ -1462,6 +1487,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         }
         catch (Exception error)
         {
+            UuCaptureAcceptanceAudit.Record("StartPhoneSession", new { stage = "failed", errorType = error.GetType().Name });
             ActivityStatus = error.Message;
             DisplayStatus = "手机屏创建失败";
             _ = RefreshDriverStatusAsync();
@@ -1561,9 +1587,12 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         if (_endingSession) return;
         _endingSession = true;
+        UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "begin", placedWindow = _placed is not null, phoneDisplay = _phoneDisplay is not null });
         await PutBackAsync();
+        UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "after-putback", placedWindow = _placed is not null });
         if (_placed is not null)
         {
+            UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "blocked-window-restore", placedWindow = true });
             ActivityStatus = "窗口尚未恢复，保留手机屏以便重试";
             _endingSession = false;
             return;
@@ -1584,7 +1613,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (_driver.IsManagedBySnug)
         {
             _connection.NoteSelfInducedChange(DateTimeOffset.UtcNow);
-            if (!await ChangeOwnedDisplayAsync(false))
+            var stopped = await ChangeOwnedDisplayAsync(false);
+            UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "display-stop", stopped, snugDisplay = _displayEnumerator.FindSnugDisplay() is not null });
+            if (!stopped)
                 ActivityStatus = "手机屏已退出，系统显示器正在关闭；稍后会自动重试";
         }
 
@@ -1825,6 +1856,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _timer.Stop();
         _timer.Tick -= OnTick;
         _uuDetector.Dispose();
+        UuCaptureAcceptanceAudit.Close();
         _gestureHook.Dispose();
         _homeBar?.Close();
         _appBackBar?.Close();

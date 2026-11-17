@@ -15,7 +15,7 @@ internal static class CapturePilot
 
     internal static async Task<int> Run(Guid feedId,string sidText,int seconds,bool acknowledgedEmpty)
     {
-        if(feedId==Guid.Empty||seconds is <5 or >300)return 2;
+        if(feedId==Guid.Empty||seconds is <5 or >600)return 2;
         if(!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
             return 3;
         var targetSid=new SecurityIdentifier(sidText);
