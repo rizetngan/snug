@@ -217,16 +217,19 @@ public sealed class MouseGestureHook : IDisposable
 
     private static void PostScroll(ScrollStep step)
     {
-        var delta = (short)Math.Clamp(step.PixelsY * 3, short.MinValue, short.MaxValue);
-        if (delta == 0) return;
+        var delta = WheelDeltas.From(step);
+        if (delta.Horizontal == 0 && delta.Vertical == 0) return;
         var point = new NativeMethods.POINT { X = (int)step.Location.X, Y = (int)step.Location.Y };
         var target = NativeMethods.WindowFromPoint(point);
         if (target == IntPtr.Zero) return;
 
         var packedPoint = ((long)(point.Y & 0xFFFF) << 16) | (uint)(point.X & 0xFFFF);
-        var packedDelta = (long)(ushort)delta << 16;
-        NativeMethods.PostMessage(target, NativeMethods.WM_MOUSEWHEEL,
-            new IntPtr(packedDelta), new IntPtr(packedPoint));
+        if (delta.Vertical != 0)
+            NativeMethods.PostMessage(target, NativeMethods.WM_MOUSEWHEEL,
+                new IntPtr((long)(ushort)delta.Vertical << 16), new IntPtr(packedPoint));
+        if (delta.Horizontal != 0)
+            NativeMethods.PostMessage(target, NativeMethods.WM_MOUSEHWHEEL,
+                new IntPtr((long)(ushort)delta.Horizontal << 16), new IntPtr(packedPoint));
     }
 
     public void Dispose()

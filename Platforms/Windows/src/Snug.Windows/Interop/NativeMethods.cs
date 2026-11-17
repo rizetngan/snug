@@ -83,6 +83,7 @@ internal static class NativeMethods
     internal const int WM_MOUSEMOVE = 0x0200;
     internal const int WM_LBUTTONUP = 0x0202;
     internal const int WM_MOUSEWHEEL = 0x020A;
+    internal const int WM_MOUSEHWHEEL = 0x020E;
     internal const int LLMHF_INJECTED = 0x00000001;
     internal const int LLMHF_LOWER_IL_INJECTED = 0x00000002;
     internal const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
