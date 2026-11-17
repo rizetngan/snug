@@ -22,6 +22,7 @@
   <ItemGroup>
     <AssemblyMetadata Include="SnugUpstreamVersion" Value="2.5.0" />
     <ProjectReference Include="..\Snug.Windows.Core\Snug.Windows.Core.csproj" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
     <Content Include="Snug.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\installer\payload\Driver\Install-SnugDriver.ps1" Link="Driver\Install-SnugDriver.ps1" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\installer\payload\Driver\snug_vdd_settings.xml" Link="Driver\snug_vdd_settings.xml" CopyToOutputDirectory="PreserveNewest" />

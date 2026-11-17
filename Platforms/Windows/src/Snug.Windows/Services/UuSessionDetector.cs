@@ -5,17 +5,20 @@ using Snug.Windows.Core;
 namespace Snug.Windows.Services;
 
 /// <summary>
-/// 只读观察 UU Remote Server 的会话日志句柄。
-/// controlled 日志由当前 GameViewerServer 进程持有时，代表这台电脑正处于被控会话。
-/// 不轮询 uuyc-cli（它每次启动都会生成一份独立 slog），不修改 UU 配置。
+/// Reads scoped controller-table evidence and legacy log compatibility hints.
+/// The optional ETW pilot can override sticky hints only with a fresh,
+/// verified-generation, complete capture inventory.
 /// </summary>
-public sealed class UuSessionDetector
+public sealed class UuSessionDetector : IDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(500);
     private static readonly string DefaultLogDirectory = @"D:\GameViewer\log\server\log";
 
     private readonly object _gate = new();
     private readonly UuControllerReader _controllerReader = new();
+    private readonly UuCapturePilotReader? _capturePilot = UuCapturePilotReader.FromEnvironment();
+    private UuServerGeneration? _serverGeneration;
+    private string _logSummary = "等待 UU 会话日志";
     private DateTimeOffset _lastPoll = DateTimeOffset.MinValue;
     private bool _polling;
     private UuSignals _cached = new(false, null, false);
@@ -35,7 +38,18 @@ public sealed class UuSessionDetector
                 _polling = true;
                 _ = Task.Run(Poll);
             }
-            return _cached with { Controllers = local.Controllers };
+            var current = _cached with { Controllers = local.Controllers };
+            if (_capturePilot is null) return current;
+            var generation = DateTimeOffset.UtcNow - _lastPoll <= UuCaptureFeed.Freshness ? _serverGeneration : null;
+            var capture = _capturePilot.Sample(generation);
+            LastSignalSummary = capture.Phase switch
+            {
+                UuCapturePhase.Active => "ETW 捕获中 · 设备与屏幕未知",
+                UuCapturePhase.Rebuilding => "ETW 捕获重建中",
+                UuCapturePhase.Inactive => "ETW 捕获已停止",
+                _ => "ETW 未知 · " + _logSummary
+            };
+            return UuCaptureLifecycle.Combine(current, capture);
         }
     }
 
@@ -44,6 +58,7 @@ public sealed class UuSessionDetector
         UuSignals signals;
         string summary;
         int? serverPid;
+        UuServerGeneration? generation = null;
 
         try
         {
@@ -52,6 +67,8 @@ public sealed class UuSessionDetector
             {
                 var pids = serverProcesses.Select(process => (uint)process.Id).ToHashSet();
                 serverPid = pids.Count == 0 ? null : (int)pids.OrderByDescending(value => value).First();
+                if (_capturePilot is not null && serverProcesses.Length == 1)
+                    generation = UuServerIdentity.ReadSingle();
 
                 if (pids.Count == 0)
                 {
@@ -87,6 +104,7 @@ public sealed class UuSessionDetector
             signals = new UuSignals(false, null, null);
             summary = "UU 会话日志暂不可读：" + error.GetType().Name;
             serverPid = null;
+            generation = null;
         }
 
         lock (_gate)
@@ -94,7 +112,9 @@ public sealed class UuSessionDetector
             _cached = signals;
             _lastPoll = DateTimeOffset.UtcNow;
             _polling = false;
-            LastSignalSummary = summary;
+            _logSummary = summary;
+            _serverGeneration = generation;
+            if (_capturePilot is null) LastSignalSummary = summary;
             ServerProcessId = serverPid;
         }
     }
@@ -163,4 +183,5 @@ public sealed class UuSessionDetector
 
         return DefaultLogDirectory;
     }
+    public void Dispose() => _capturePilot?.Dispose();
 }

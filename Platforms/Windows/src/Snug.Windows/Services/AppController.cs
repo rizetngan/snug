@@ -1824,6 +1824,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _screenshotPanel = null;
         _timer.Stop();
         _timer.Tick -= OnTick;
+        _uuDetector.Dispose();
         _gestureHook.Dispose();
         _homeBar?.Close();
         _appBackBar?.Close();

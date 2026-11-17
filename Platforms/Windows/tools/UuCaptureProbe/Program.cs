@@ -12,6 +12,10 @@ internal static class Program
     public static int Main(string[] args)
     {
         if (args is ["--replay-disconnected", var report]) return CaptureReplay.Run(report);
+        if (args is [var mode,var id,var sid,var duration] &&
+            mode is "--pilot" or "--pilot-disconnected" &&
+            Guid.TryParse(id,out var feedId)&&int.TryParse(duration,out var limit))
+            return CapturePilot.Run(feedId,sid,limit,mode=="--pilot-disconnected").GetAwaiter().GetResult();
         if (args.Length != 2 || !int.TryParse(args[0],out var seconds) || seconds is < 5 or > 180)
         {
             Console.Error.WriteLine("Usage: UuCaptureProbe.dll <5..180 seconds> <new output.jsonl>");
