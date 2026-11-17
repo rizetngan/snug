@@ -4,7 +4,7 @@ import Foundation
 func randomBytes(_ count: Int, seed: UInt64) -> Data {
     var state = seed
     var data = Data(count: count)
-    data.withUnsafeMutableBytes { bytes in
+    data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) in
         for i in 0..<count {
             state &+= 0x9E37_79B9_7F4A_7C15
             var z = state

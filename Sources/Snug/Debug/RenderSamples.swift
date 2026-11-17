@@ -43,6 +43,14 @@ enum RenderSamples {
                 connected(s)
                 s.config.phone = PhoneChoice(model: nil, screen: PhoneScreen(width: 1080, height: 2400))
             },
+            setting("settings-screenshot") { s in
+                connected(s)
+                s.config.screenshot = true
+            },
+            setting("settings-screenshot-granted-dark", dark: true) { s in
+                s.config.screenshot = true
+                s.screenRecordingTrusted = true
+            },
             setting("settings-update-available") { s in s.update.check = .available(sampleFeed) },
             setting("settings-update-too-old") { s in s.update.problem = .tooOld },
             setting("settings-trouble") { s in
@@ -271,7 +279,49 @@ enum RenderSamples {
             phoneSample("phone-reshaped") { s, _ in s.phone.notice = .reshaped },
             phoneSample("phone-empty", running: []) { _, _ in },
             phoneSample("phone-loading", running: [], loaded: false) { _, _ in },
+        ] + screenshot
+    }
+
+    // MARK: 截图
+
+    private static var screenshot: [RenderSample] {
+        let fit = ScreenFit.standard
+        let base = fit.size(width: fit.baseWidth)
+        let wide = fit.size(width: fit.widths[min(3, fit.widths.count - 1)])
+        let crop = { (size: CGSize) in
+            AnyView(CropView(image: sampleShot, pixelSize: sampleShotSize, onCancel: {}, onDone: { _ in })
+                .frame(width: size.width, height: size.height))
+        }
+        return [
+            RenderSample(name: "phone-screenshot-thumbnail") {
+                AnyView(ScreenshotThumbnail(image: sampleShot, scale: 1) {}.padding(12))
+            },
+            RenderSample(name: "phone-screenshot-notice-dark", dark: true) {
+                AnyView(ScreenshotNoticeView(notice: .needsPermission, scale: 1).padding(12))
+            },
+            RenderSample(name: "phone-screenshot-crop", size: base) { crop(base) },
+            RenderSample(name: "phone-screenshot-crop-wide", size: wide) { crop(wide) },
         ]
+    }
+
+    private static let sampleShotSize = CGSize(width: 1080, height: 1794)
+
+    /// 一张假的窗口截图：标题栏 + 几行字的灰条
+    private static let sampleShot = NSImage(size: sampleShotSize, flipped: true) { rect in
+        NSColor.white.setFill()
+        rect.fill()
+        NSColor(white: 0.92, alpha: 1).setFill()
+        NSRect(x: 0, y: 0, width: rect.width, height: 112).fill()
+        for (i, color) in [NSColor.systemRed, .systemYellow, .systemGreen].enumerated() {
+            color.setFill()
+            NSBezierPath(ovalIn: NSRect(x: 40 + CGFloat(i) * 56, y: 38, width: 36, height: 36)).fill()
+        }
+        NSColor(white: 0.8, alpha: 1).setFill()
+        for row in 0..<14 {
+            let width = rect.width - 160 - CGFloat(row % 3) * 180
+            NSBezierPath(roundedRect: NSRect(x: 80, y: 200 + CGFloat(row) * 110, width: width, height: 36), xRadius: 18, yRadius: 18).fill()
+        }
+        return true
     }
 
     private static func phoneSample(_ name: String, dark: Bool = false, tab: PhoneHomeView.Tab = .running,

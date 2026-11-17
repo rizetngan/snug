@@ -105,6 +105,22 @@ extension PhoneDesk.Notice {
     }
 }
 
+extension ScreenshotNotice {
+    /// 手机屏上截图、裁剪之后的提示
+    var text: StatusText {
+        switch self {
+        case .cropped: StatusText(headline: "已复制选区", detail: nil)
+        case .needsPermission: StatusText(headline: "需要\(PermissionName.screenRecording)权限", detail: "请在 Mac 上的 Snug 设置中授权")
+        case .windowGone: StatusText(headline: "窗口已关闭", detail: "未截图")
+        case .failed: StatusText(headline: "未能截图", detail: "请稍后再试")
+        case .copyFailed: StatusText(headline: "未能写入剪贴板", detail: "请稍后再试")
+        case .cropFailed: StatusText(headline: "未能裁剪", detail: "剪贴板中仍是整张截图")
+        }
+    }
+
+    var symbol: String { self == .cropped ? "checkmark.circle.fill" : "exclamationmark.triangle.fill" }
+}
+
 extension WindowInfo {
     /// 列表里显示的标题
     var displayTitle: String { title.isEmpty ? "无标题" : title }

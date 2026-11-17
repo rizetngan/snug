@@ -30,6 +30,7 @@ metadata:
 **真机自测**
 - 流程：`scripts/snug app` 打签名版（只测现成行为时用装好的正式版也行），SIGTERM 正在跑的 Snug（`pkill` 用锚定的完整路径），带 `--preview-phone` 启动：手机屏不等连接就建好、一直留着。测完 SIGTERM 测试实例，再从访达重开正式版
 - **正式版只让访达开**：`osascript -e 'tell application "Finder" to open (POSIX file "/Applications/Snug.app" as alias)'`。别在 Claude Code 的命令里 `open -a` 或直接执行：LaunchServices 会把发起者的环境变量交给新 App，Snug 再交给从手机屏打开的 App。11-15 这样把 `CLAUDE_CODE_CHILD_SESSION=1` 带进了主人从手机屏开的 Ghostty，那里的 claude 被当成子会话、不存对话记录；11-16 用 `open -g -a` 又犯了一次（带进 8 个 `CLAUDE_CODE_*`），已从访达重开。查法：`ps -E -ww -o command= -p <pid> | tr ' ' '\n' | grep CLAUDE_CODE`。带参数的测试实例只能从命令行起，所以测完一定要从访达重开
+- **测录屏这类系统权限要从访达开测试版**：从终端直接起的程序，系统按「负责进程」算在终端名下（11-16 测试版读到的是 Ghostty 的录屏权限＝未授权，辅助功能也是借的 Ghostty）。`osascript -e 'tell application "Finder" to open (POSIX file "<仓库>/build/Snug.app" as alias)'`，环境变量也干净；带不了参数，要的开关先在配置或设置页里拨好。另外授权时系统弹「退出并重新打开」，重开按标识找到的是「应用程序」里那份，不是 build/ 的测试版：测试时选「稍后」，自己从访达重开测试版；授过一次后重开就生效
 - 手动打开会弹设置窗口（「通用」），用辅助功能点它的关闭按钮：`click (first button of window "通用" whose subrole is "AXCloseButton")`
 - 主人可能正在用这台 Mac：别抢焦点（放窗口会激活那个 App），别切主屏的桌面空间（比如把窗口设成全屏）；写字用辅助功能设值或 `CGEvent.postToPid`，别发全局键盘事件。别的桌面空间（含主人的全屏空间）里的窗口辅助功能列不出来，要用远程令牌找。手机屏面板上的按钮用 `AXPress` 按，搜索框例外：按了面板拿不到键盘（手机上 UU 发的是真实点击，不受影响）
 

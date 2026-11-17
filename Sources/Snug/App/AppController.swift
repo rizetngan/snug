@@ -5,8 +5,10 @@ import AppKit
 import SnugCore
 import SnugSystem
 
+/// 显式标 Sendable（主线程隔离的类本来就是）：意图协议要求 Sendable，而遵循写在另一个文件里，
+/// 不在这里标的话编译器会警告「Sendable 须在类所在的文件里声明」
 @MainActor
-final class AppController {
+final class AppController: Sendable {
     static let tickInterval: TimeInterval = 0.5
     /// 每隔这么久核对一次手机屏上的窗口还在不在
     static let verifyInterval: TimeInterval = 2
@@ -16,6 +18,8 @@ final class AppController {
     let desk: PhoneDesk
     /// 手机屏 App 资源库的统一数据源。界面碰得到的系统入口只有 desk 和它
     let catalog: AppCatalog
+    /// 手机屏上的截图（小横条的相机键）
+    let screenshots = Screenshots(system: ScreenshotService())
     /// 用户从菜单或设置里点「退出」（由 AppDelegate 接到退出流程上）
     var onQuitRequested: (() -> Void)?
 
@@ -78,6 +82,7 @@ final class AppController {
         desk.onChange = { [weak self] phone in self?.phoneChanged(phone) }
         desk.onGone = { [weak self] gone in self?.catalog.forget(gone) }
         touch.onCloseWindow = { [weak self] window in self?.desk.closePlaced(window: window) }
+        screenshots.onChange = { [weak self] overlay in self?.screenshotChanged(overlay) }
         desk.onTopologyChange = { [weak self] in
             guard let self else { return }
             session.noteSelfInducedChange(at: now)
@@ -118,6 +123,7 @@ final class AppController {
         }
         lastTickAt = now
         refreshTrust()
+        screenshots.expire()
         let sample = sensor.sample(now: Date())
         let transitions = session.update(sample.signals, now: now)
         for t in transitions { Log.info("会话：\(Self.describe(t))") }
@@ -131,6 +137,7 @@ final class AppController {
             desk.verifyPlacement()
             desk.checkReturns()
             desk.settleDisplays()
+            refreshScreenRecording()
         }
         state.update(\.connection, session.isConnected ? .connected : (session.inEpisode ? .reconnecting : .idle))
         state.update(\.controllers, session.controllers)
@@ -153,18 +160,38 @@ final class AppController {
         if trusted { desk.recover() }
     }
 
+    /// 录屏权限也是用户在系统设置里给的：开着截图键时每两秒对一次（不跟着每拍去读 TCC），变了记一笔
+    func refreshScreenRecording() {
+        guard store.config.screenshot else { return }
+        let trusted = screenshots.trusted
+        guard trusted != state.screenRecordingTrusted else { return }
+        state.screenRecordingTrusted = trusted
+        Log.info("录屏权限：\(trusted ? "已授权" : "未授权")")
+    }
+
     // MARK: 手机屏
 
     private func phoneChanged(_ phone: PhoneDesk.State) {
         state.phone = phone
+        // 手机屏没了：浮着的截图、裁剪中的一并收掉，不然下次连上还盖着旧截图
+        if phone.display == nil { screenshots.dismiss() }
         syncGestures()
     }
 
-    /// 手势翻译只在手机屏在、并且开着手势时运行；范围跟着手机屏（换档、屏幕重排时 DisplayWatcher 也会调到这里）
+    private func screenshotChanged(_ overlay: ScreenshotOverlay?) {
+        state.screenshotOverlay = overlay
+        syncGestures()
+    }
+
+    /// 手势翻译只在手机屏在、开着手势、并且没在裁剪截图时运行（裁剪时的拖动是在画选区，不能翻译成滚动）；
+    /// 范围跟着手机屏（换档、屏幕重排时 DisplayWatcher 也会调到这里）
     func syncGestures() {
         // 窗口露着时才拦它的关闭按钮：列表盖着时那个位置是列表
         let closeButton = state.phone.listVisible ? nil : state.phone.closeButton
-        let region = store.config.gestures ? state.phone.display.map { TouchRegion(phoneScreen: CGDisplayBounds($0), closeButton: closeButton) } : nil
+        let translating = store.config.gestures && state.screenshotOverlay?.isCropping != true
+        let region = translating
+            ? state.phone.display.map { TouchRegion(phoneScreen: CGDisplayBounds($0), closeButton: closeButton) }
+            : nil
         state.update(\.gesturesFailed, !touch.setRegion(region))
     }
 

@@ -70,6 +70,14 @@ UU远程 手机端沿用触控板的手势逻辑；Snug 在手机屏上按手机
 | 主屏幕指示条 | 底部指示条，返回 App 资源库 |
 | 左上角「‹ 返回」 | 左上角「‹ App 名」，返回当前窗口 |
 
+### 截图
+
+在 Snug 设置中打开「截图」后，底部指示条左侧出现相机键。轻点即截下铺满手机屏的窗口，放入 Mac 的剪贴板，可在任意 App 中粘贴。截取的是窗口原画，不受远程画质压缩的影响。
+
+- **裁剪**：截图后左下角浮出缩略图，轻点进入裁剪。默认选中整张，拖动四角或四边收窄，轻点「完成」后，以选中部分替换剪贴板中的截图
+- **权限**：需另行授予「录屏与系统录音」权限（macOS 14 为「屏幕录制」），在 Snug 设置中点按「授权…」，按系统提示重新打开 Snug 后生效；与辅助功能权限相互独立
+- **默认关闭**：关闭时指示条上不显示相机键，也无需授予录屏权限
+
 ## 📱 App 资源库
 
 手机屏的首页，用于在手机上管理 Mac 的 App：查找、打开、切换、新建、关闭与退出，都不必回到电脑前。
@@ -137,7 +145,7 @@ UU远程 将画面等比缩放后放进手机，比例不符时会留下黑边�
 **更新**：启动时自动检查，有新版本时一键更新，设置与授权保留；也可在「关于」页手动检查或切换更新源。2.1.0 之前的版本请手动下载替换。
 
 <div align="center">
-<img src="https://dl.zephyrxiang.com/snug/media/welcome.529d7d28.png" width="30%" alt="欢迎页"> <img src="https://dl.zephyrxiang.com/snug/media/settings-ready.ee67ab30.png" width="30%" alt="设置"> <img src="https://dl.zephyrxiang.com/snug/media/about.5534d9dc.png" width="30%" alt="关于：版本、软件更新与更新源">
+<img src="https://dl.zephyrxiang.com/snug/media/welcome.529d7d28.png" width="30%" alt="欢迎页"> <img src="https://dl.zephyrxiang.com/snug/media/settings-ready.a76a5b8c.png" width="30%" alt="设置"> <img src="https://dl.zephyrxiang.com/snug/media/about.5534d9dc.png" width="30%" alt="关于：版本、软件更新与更新源">
 <p><sub>欢迎页 · 设置 · 关于</sub></p>
 </div>
 
@@ -177,7 +185,7 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 - **先记录，后改动**：窗口的原始位置与字号先行记录，Snug 意外退出后也能还原
 - **窗口被直接关掉也能还原**：在手机上直接关掉的窗口，App 下次带着手机屏上的大小打开时，自动放回原位、缩回字号
 - **无响应时保持原状**：App 暂时无响应时不强行移动窗口，并在屏上说明原因
-- **不收集数据**：除检查更新外不连接任何服务器，不收集任何数据
+- **不收集数据**：除检查更新外不连接任何服务器，不收集任何数据；截图只放入本机剪贴板，不留存
 
 ## 🚧 已知限制
 
@@ -208,7 +216,7 @@ scripts/snug install   # 构建、安装并打开
 1. 在菜单栏中退出 Snug（窗口会先还原）
 2. 将「应用程序」中的 Snug 移到废纸篓
 3. 可选：删除设置与日志 `rm -rf ~/Library/Application\ Support/Snug ~/Library/Logs/Snug.log*`
-4. 可选：在系统设置的「辅助功能」中移除 Snug
+4. 可选：在系统设置的「辅助功能」中移除 Snug；开启过截图的，在「录屏与系统录音」中一并移除
 
 ## 🙏 致谢
 

@@ -68,13 +68,13 @@ App 将本机已安装的 Snug 按同样方式切块，只按字节范围从最�
 
 | 目标 | 内容 |
 | :--- | :--- |
-| `SnugCore` | 纯逻辑：连接判定与会话、手机屏调度 `PhoneDesk`、屏幕适配 `ScreenFit`、手势翻译 `TouchTranslator`、规格、还原记录、配置、日志、启动参数、更新包格式。系统能力抽象为协议，测试中使用假实现 |
-| `SnugSystem` | 系统层：`CGVirtualDisplay` 建屏与撤屏、辅助进程切换分辨率档位、辅助功能接口移动窗口、按进程发送字号快捷键、手势事件监听 `TouchTap` |
-| `Snug` | 应用层：UU远程 感知、AppController、应用内更新 `Updater`、手机屏上的 App 资源库与指示条、设置（通用、关于）、欢迎页、菜单栏 |
+| `SnugCore` | 纯逻辑：连接判定与会话、手机屏调度 `PhoneDesk`、屏幕适配 `ScreenFit`、手势翻译 `TouchTranslator`、截图 `Screenshots`、规格、还原记录、配置、日志、启动参数、更新包格式。系统能力抽象为协议，测试中使用假实现 |
+| `SnugSystem` | 系统层：`CGVirtualDisplay` 建屏与撤屏、辅助进程切换分辨率档位、辅助功能接口移动窗口、按进程发送字号快捷键、手势事件监听 `TouchTap`、ScreenCaptureKit 截图 |
+| `Snug` | 应用层：UU远程 感知、AppController、应用内更新 `Updater`、手机屏上的 App 资源库、指示条与截图裁剪、设置（通用、关于）、欢迎页、菜单栏 |
 
 发布工具 `SnugRelease` 只依赖 `SnugCore`，由 `scripts/snug` 调用。
 
-手势翻译分两半：`SnugCore/Touch` 是纯状态机，只认一块范围 `TouchRegion`（位置与缩放倍数），不依赖手机屏；`SnugSystem` 中 `TouchTap` 负责监听线程，`TouchEvents` 负责读入与拼装事件。`AppController` 只决定范围：手机屏在且开着手势时为手机屏，否则关闭。新增一种手势时，在状态机里加判定与 `TouchCommand`，在 `TouchEvents` 里拼装要补发的事件，再在 `TouchTap` 按命令分派处补上一支。
+手势翻译分两半：`SnugCore/Touch` 是纯状态机，只认一块范围 `TouchRegion`（位置与缩放倍数），不依赖手机屏；`SnugSystem` 中 `TouchTap` 负责监听线程，`TouchEvents` 负责读入与拼装事件。`AppController` 只决定范围：手机屏在、开着手势且没在裁剪截图时为手机屏，否则关闭。新增一种手势时，在状态机里加判定与 `TouchCommand`，在 `TouchEvents` 里拼装要补发的事件，再在 `TouchTap` 按命令分派处补上一支。
 
 ## 启动参数
 

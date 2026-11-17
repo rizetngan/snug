@@ -17,7 +17,7 @@ let package = Package(
         .target(name: "SnugCore"),
         // 私有 API（CGVirtualDisplay）头文件
         .target(name: "CGVirtualDisplayBridge"),
-        // 系统层：建屏撤屏、切模式、搬窗口、发按键、事件监听。实现 SnugCore 定义的系统能力
+        // 系统层：建屏撤屏、切模式、搬窗口、发按键、事件监听、截图。实现 SnugCore 定义的系统能力
         .target(name: "SnugSystem", dependencies: ["SnugCore", "CGVirtualDisplayBridge"]),
         .executableTarget(
             name: "Snug",

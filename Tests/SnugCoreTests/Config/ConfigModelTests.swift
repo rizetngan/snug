@@ -4,11 +4,12 @@ import Testing
 
 @Suite("配置 AppConfig")
 struct ConfigModelTests {
-    @Test("默认值：手机屏和手势都开着，字号默认放大 2 级，还没看过欢迎页，从腾讯云更新")
+    @Test("默认值：手机屏和手势都开着，截图键关着，字号默认放大 2 级，还没看过欢迎页，从腾讯云更新")
     func defaults() {
         let c = AppConfig()
         #expect(c.phoneScreen)
         #expect(c.gestures)
+        #expect(!c.screenshot)
         #expect(c.zoomSteps == 2)
         #expect(!c.welcomed)
         #expect(c.updateSource == .tencent)
@@ -42,6 +43,7 @@ struct ConfigModelTests {
         let c = try JSONDecoder().decode(AppConfig.self, from: Data(json.utf8))
         #expect(c.gestures == false)
         #expect(c.phoneScreen)
+        #expect(!c.screenshot)
         #expect(c.zoomSteps == 2)
     }
 
@@ -57,6 +59,7 @@ struct ConfigModelTests {
     func roundTrip() throws {
         var c = AppConfig()
         c.phoneScreen = false
+        c.screenshot = true
         c.zoomSteps = 3
         c.welcomed = true
         c.updateSource = .github

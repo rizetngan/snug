@@ -70,6 +70,14 @@ UU Remote's mobile client carries over trackpad gesture conventions. On the phon
 | Home indicator | Bottom indicator bar, returning to the App Library |
 | "‹ Back" in the top-left corner | "‹ App name" in the top-left corner, returning to the current window |
 
+### Screenshots
+
+Turn on Screenshot (「截图」) in Snug Settings and a camera button appears on the left of the bottom indicator bar. Tap it to capture the window filling the phone screen and copy it to the Mac's clipboard, ready to paste into any app. You get the window's native pixels, unaffected by remote image compression.
+
+- **Crop**: after a capture, a thumbnail appears in the bottom-left corner; tap it to crop. The whole image is selected by default — drag a corner or edge inward, then tap Done (「完成」) to replace the screenshot in the clipboard with the selection
+- **Permission**: requires the separate Screen & System Audio Recording permission (Screen Recording on macOS 14); click Authorize… (「授权…」) in Snug Settings, then reopen Snug when macOS asks. It is independent of the Accessibility permission
+- **Off by default**: when it is off, the indicator bar shows no camera button and no recording permission is needed
+
 ## 📱 App Library
 
 The home page of the phone screen (「App 资源库」), for managing your Mac's apps from the phone: find, open, switch, create, close, and quit, without going back to your desk.
@@ -137,7 +145,7 @@ Snug then stays in the menu bar; no further setup is needed. Open Snug again at 
 **Updates**: Snug checks at launch and installs new versions with one click, keeping your settings and permissions. You can also check manually or switch the update source on the About tab (「关于」). Versions before 2.1.0 must be replaced manually.
 
 <div align="center">
-<img src="https://dl.zephyrxiang.com/snug/media/welcome.529d7d28.png" width="30%" alt="Welcome window"> <img src="https://dl.zephyrxiang.com/snug/media/settings-ready.ee67ab30.png" width="30%" alt="Settings"> <img src="https://dl.zephyrxiang.com/snug/media/about.5534d9dc.png" width="30%" alt="About: version, software update, and update source">
+<img src="https://dl.zephyrxiang.com/snug/media/welcome.529d7d28.png" width="30%" alt="Welcome window"> <img src="https://dl.zephyrxiang.com/snug/media/settings-ready.a76a5b8c.png" width="30%" alt="Settings"> <img src="https://dl.zephyrxiang.com/snug/media/about.5534d9dc.png" width="30%" alt="About: version, software update, and update source">
 <p><sub>Welcome window · Settings · About</sub></p>
 </div>
 
@@ -177,7 +185,7 @@ rm ~/Library/LaunchAgents/com.corndog.uudisplay.watchdog-agent.plist
 - **Record first, then change**: each window's original position and text size are recorded in advance, so they can be restored even if Snug quits unexpectedly
 - **Restored even when a window is closed directly**: if you close a window directly on your phone, the next time the app opens it at the phone-screen size, Snug moves it back and restores its text size
 - **Unresponsive apps are left as they are**: if an app stops responding, Snug does not force its window to move and explains why on screen
-- **No data collection**: apart from checking for updates, Snug connects to no servers and collects no data
+- **No data collection**: apart from checking for updates, Snug connects to no servers and collects no data; screenshots only go to the Mac's clipboard and are not kept
 
 ## 🚧 Known Limitations
 
@@ -208,7 +216,7 @@ scripts/snug install   # build, install, and launch
 1. Quit Snug from the menu bar (windows are restored first)
 2. Move Snug from Applications to the Trash
 3. Optional: remove its settings and logs with `rm -rf ~/Library/Application\ Support/Snug ~/Library/Logs/Snug.log*`
-4. Optional: remove Snug from Accessibility in System Settings
+4. Optional: remove Snug from Accessibility in System Settings, and from Screen & System Audio Recording if you turned on Screenshot
 
 ## 🙏 Acknowledgments
 

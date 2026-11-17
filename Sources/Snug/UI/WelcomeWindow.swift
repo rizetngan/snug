@@ -2,15 +2,12 @@
 // 授权由 PermissionFlow 打开系统设置，旁边浮出一个小窗口，把 Snug 拖进列表即可。之后缺权限时从设置里也能再打开。
 // 授权状态读 AppState（AppController 每拍刷新），这里不自己轮询
 import AppKit
-import PermissionFlow
 import SwiftUI
 import SnugCore
 
 struct WelcomeView: View {
     let state: AppState
     let onDone: () -> Void
-
-    private var appURL: URL { Bundle.main.bundleURL }
 
     var body: some View {
         let granted = state.accessibilityTrusted
@@ -41,14 +38,8 @@ struct WelcomeView: View {
                     Button("完成", action: onDone).keyboardShortcut(.defaultAction)
                 } else {
                     Button("稍后", action: onDone)
-                    PermissionFlowButton(
-                        pane: .accessibility,
-                        suggestedAppURLs: [appURL],
-                        configuration: .init(requiredAppURLs: [appURL], promptForAccessibilityTrust: false, localeIdentifier: "zh-Hans")
-                    ) { _ in
-                        Text("授权…")
-                    }
-                    .keyboardShortcut(.defaultAction)
+                    AuthorizeButton(pane: .accessibility)
+                        .keyboardShortcut(.defaultAction)
                 }
             }
             .controlSize(.large)

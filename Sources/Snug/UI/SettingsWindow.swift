@@ -1,7 +1,8 @@
 // 设置窗口：macOS App 设置窗口的标准做法，顶部工具栏标签页「通用 / 关于」（关于页见 AboutView）。
-// 通用页：顶部是此刻的状态，需要处理的问题每个一行、各带解决它的按钮；下面是总开关、手机型号和两项微调，再下面是开机启动和权限。
+// 通用页：顶部是此刻的状态，需要处理的问题每个一行、各带解决它的按钮；下面是总开关、手机型号和几项微调，再下面是开机启动和权限。
 // 每行配 SF Symbols 图标，说明只用短词。只读 AppState，意图走 AppIntents
 import AppKit
+import PermissionFlow
 import SwiftUI
 import SnugCore
 
@@ -19,35 +20,46 @@ struct SettingsView: View {
                 }
             }
             Section {
-                Toggle(isOn: binding(state.config.phoneScreen, intents.setPhoneScreen)) {
+                Toggle(isOn: binding(\.config.phoneScreen, intents.setPhoneScreen)) {
                     SettingLabel("手机屏", detail: "UU远程 中增加竖屏", symbol: "iphone", tint: .blue)
                 }
                 LabeledContent {
-                    PhoneMenu(current: state.config.phone, phones: state.phones, choose: intents.setPhone)
+                    PhoneMenu(state: state, choose: intents.setPhone)
                 } label: {
                     SettingLabel("手机型号", detail: "手机屏按它调整比例", symbol: "iphone.gen3", tint: .indigo)
                 }
                 .disabled(!state.config.phoneScreen)
-                Toggle(isOn: binding(state.config.gestures, intents.setGestures)) {
+                Toggle(isOn: binding(\.config.gestures, intents.setGestures)) {
                     SettingLabel("触控手势", detail: "单指滚动 · 长按选择 · 长按松开右键", symbol: "hand.draw.fill", tint: .orange)
                 }
                 .disabled(!state.config.phoneScreen)
+                Toggle(isOn: binding(\.config.screenshot, intents.setScreenshot)) {
+                    SettingLabel("截图", detail: "指示条左侧的相机键 · 截当前窗口到剪贴板", symbol: "camera.viewfinder", tint: .pink)
+                }
+                .disabled(!state.config.phoneScreen)
                 LabeledContent {
-                    ZoomSlider(steps: binding(state.config.zoomSteps, intents.setZoomSteps))
+                    ZoomSlider(steps: binding(\.config.zoomSteps, intents.setZoomSteps))
                 } label: {
                     SettingLabel("字号放大", detail: "终端、编辑器", symbol: "textformat.size", tint: .green)
                 }
                 .disabled(!state.config.phoneScreen)
             }
             Section {
-                Toggle(isOn: binding(state.launchAtLogin, intents.setLaunchAtLogin)) {
+                Toggle(isOn: binding(\.launchAtLogin, intents.setLaunchAtLogin)) {
                     SettingLabel("开机启动", symbol: "power", tint: .gray)
                 }
-                // 没授权时「授权…」在顶部状态里，这里只写状态
+                // 没授权时「授权…」在顶部状态（辅助功能）或问题行（录屏）里，这里只写状态
                 LabeledContent {
                     PermissionStatus(granted: state.accessibilityTrusted)
                 } label: {
                     SettingLabel.accessibility
+                }
+                if state.config.phoneScreen, state.config.screenshot {
+                    LabeledContent {
+                        PermissionStatus(granted: state.screenRecordingTrusted)
+                    } label: {
+                        SettingLabel.screenRecording
+                    }
                 }
             } footer: {
                 HStack {
@@ -68,11 +80,16 @@ struct SettingsView: View {
         var list: [Issue] = []
         if state.legacyAppRunning {
             list.append(Issue(id: "legacy", text: StatusText(headline: "旧版「UU远程伴侣」运行中", detail: "与 Snug 同时运行将相互干扰"),
-                              action: ("退出旧版", intents.quitLegacyApp)))
+                              action: .run("退出旧版", intents.quitLegacyApp)))
         }
         if let issue = state.loginItemIssue {
             list.append(Issue(id: "login", text: issue.text,
-                              action: issue == .needsApproval ? ("前往允许", intents.openLoginItemsSettings) : nil))
+                              action: issue == .needsApproval ? .run("前往允许", intents.openLoginItemsSettings) : nil))
+        }
+        if state.config.phoneScreen, state.config.screenshot, !state.screenRecordingTrusted {
+            list.append(Issue(id: "screen-recording",
+                              text: StatusText(headline: "截图需要\(PermissionName.screenRecording)权限", detail: "系统设置 › 隐私与安全性"),
+                              action: .authorize(.screenRecording)))
         }
         if state.configSaveFailed {
             list.append(Issue(id: "config", text: StatusText(headline: "设置未保存", detail: "修改未生效，请重试"), action: nil))
@@ -80,8 +97,11 @@ struct SettingsView: View {
         return list
     }
 
-    private func binding<T>(_ value: T, _ set: @escaping @MainActor (T) -> Void) -> Binding<T> {
-        Binding(get: { value }, set: { set($0) })
+    /// 控件的绑定：取值时现读 AppState，不在刷新时存一份副本。副本在点下去之后、界面刷新之前还是旧值，
+    /// 控件会先弹回旧值再变过去，一次操作成了两次变化；这次操作若让行增减（如「截图」），
+    /// 窗口按两次变化各改一回尺寸，叠出多余的高度或塌成 0，整页空白
+    private func binding<T>(_ keyPath: KeyPath<AppState, T>, _ set: @escaping @MainActor (T) -> Void) -> Binding<T> {
+        Binding(get: { state[keyPath: keyPath] }, set: { set($0) })
     }
 }
 
@@ -122,9 +142,15 @@ private struct StatusHeader: View {
 }
 
 private struct Issue: Identifiable {
+    enum Action {
+        case run(String, @MainActor () -> Void)
+        /// 缺权限：「授权…」打开系统设置对应的隐私页（见 AuthorizeButton）
+        case authorize(PermissionFlowPane)
+    }
+
     let id: String
     let text: StatusText
-    let action: (title: String, run: @MainActor () -> Void)?
+    let action: Action?
 }
 
 /// 一个问题一行：警示图标、出了什么事、去哪里处理，右边是解决它的按钮
@@ -133,7 +159,11 @@ private struct IssueRow: View {
 
     var body: some View {
         LabeledContent {
-            if let action = issue.action { Button(action.title, action: action.run) }
+            switch issue.action {
+            case .run(let title, let run): Button(title, action: run)
+            case .authorize(let pane): AuthorizeButton(pane: pane)
+            case nil: EmptyView()
+            }
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -150,14 +180,16 @@ private struct IssueRow: View {
 
 /// 手机型号：按品牌分组的菜单，选中的打勾；最后一项自己填分辨率（弹出小窗）。和手机屏上的「手机型号」页是同一份配置
 private struct PhoneMenu: View {
-    let current: PhoneChoice
-    let phones: PhoneCatalog
+    let state: AppState
     let choose: @MainActor (PhoneChoice) -> Void
     @State private var customizing = false
 
+    /// 菜单项的勾也现读 AppState（理由同 SettingsView.binding）
+    private var current: PhoneChoice { state.config.phone }
+
     var body: some View {
         Menu(current.customScreen.map { "\(current.title) \($0.sizeText)" } ?? current.title) {
-            ForEach(phones.brands) { brand in
+            ForEach(state.phones.brands) { brand in
                 Menu(brand.name) {
                     ForEach(brand.models) { model in
                         Toggle(model.name, isOn: Binding(get: { model.id == current.model },
@@ -165,7 +197,7 @@ private struct PhoneMenu: View {
                     }
                 }
             }
-            if !phones.brands.isEmpty { Divider() }
+            if !state.phones.brands.isEmpty { Divider() }
             Toggle("自定义分辨率…", isOn: Binding(get: { current.model == nil }, set: { _ in customizing = true }))
         }
         .fixedSize()

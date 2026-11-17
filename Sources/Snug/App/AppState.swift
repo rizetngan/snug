@@ -1,5 +1,6 @@
 // 发布给界面的状态。界面只读它，改动一律走意图协议（由 AppController 实现）。
 // 菜单栏、设置窗口、手机屏上的列表读的是同一份状态：任何入口改了，所有界面一起变
+import CoreGraphics
 import Observation
 import SnugCore
 
@@ -25,6 +26,8 @@ final class AppState {
     /// 手势翻译要开却没开起来（建事件监听失败）
     var gesturesFailed = false
     var accessibilityTrusted = false
+    /// 录屏权限：手机屏上的截图要它，和辅助功能分开授权（开了截图键才去读）
+    var screenRecordingTrusted = false
     var launchAtLogin = false
     /// 上一次打开开机启动没成
     var loginItemIssue: LoginItemIssue?
@@ -36,6 +39,8 @@ final class AppState {
     var quitting = false
     /// 应用内更新：查到了什么、进行到哪（Updater 写）
     var update = UpdateState()
+    /// 手机屏上浮着的截图界面：缩略图、裁剪或一句结果（Screenshots 写）
+    var screenshotOverlay: ScreenshotOverlay?
 
     init() {}
 
@@ -59,9 +64,10 @@ enum LoginItemIssue: Equatable {
     case failed
 }
 
-/// 设置窗口、菜单栏能发起的意图。AppController 是唯一实现（渲染 PNG 时用一个什么都不做的替身）
+/// 设置窗口、菜单栏能发起的意图。AppController 是唯一实现（渲染 PNG 时用一个什么都不做的替身）。
+/// 几个意图协议都标 Sendable：Swift 6.2 把 intents.setPhone 这种方法引用存进视图属性时要求它可跨隔离域传递
 @MainActor
-protocol AppIntents: AnyObject {
+protocol AppIntents: AnyObject, Sendable {
     func setPhoneScreen(_ on: Bool)
     func setGestures(_ on: Bool)
     func setZoomSteps(_ steps: Int)
@@ -78,11 +84,13 @@ protocol AppIntents: AnyObject {
     func openDownloadPage()
     /// 换手机型号：手机屏在就马上换成它的比例
     func setPhone(_ phone: PhoneChoice)
+    /// 指示条上的相机键（截图）
+    func setScreenshot(_ on: Bool)
 }
 
 /// 手机屏上的 App 资源库和小横条能发起的意图
 @MainActor
-protocol PhoneIntents: AnyObject {
+protocol PhoneIntents: AnyObject, Sendable {
     func pull(_ window: WindowInfo)
     /// 点一个 App：在跑且有窗口就放最近用过的那个，否则打开它、等新窗口出来再放（见 AppList.action）
     func open(_ app: AppInfo)
@@ -98,11 +106,17 @@ protocol PhoneIntents: AnyObject {
     func setPhone(_ phone: PhoneChoice)
     /// 退出手机屏：这次远程不再显示（见 PhoneDesk.dismissScreen）
     func dismissScreen()
+    /// 截铺满手机屏的窗口到剪贴板（见 Screenshots）
+    func takeScreenshot()
+    func openCrop()
+    func cancelCrop()
+    /// selection 是图片里的比例（0…1，见 CropGeometry）
+    func finishCrop(_ selection: CGRect)
 }
 
 /// 打开各个窗口
 @MainActor
-protocol Navigation: AnyObject {
+protocol Navigation: AnyObject, Sendable {
     func openSettings()
     func openWelcome()
     func openAbout()
