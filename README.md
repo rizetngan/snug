@@ -41,6 +41,14 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 - **字号与布局**：兼容的应用可调整字号；支持应用的最小宽度适配。
 - **截图与裁剪**：在设置中开启截图后，可以将窗口画面复制到 Windows 剪贴板，再按需裁剪。
 
+<p align="center">
+<img src="Assets/WindowsMedia/browser-window-before.png" width="46%" alt="同一 Chrome 测试窗口在 Windows 主屏上的原始大小">
+<img src="Assets/WindowsMedia/browser-phone-live.png" width="29%" alt="0.2.39 将同一 Chrome 窗口适配到 Snug 手机屏，保留底部返回条">
+<br><sub>同一测试页面 · 左：原始 Windows 窗口 · 右：Snug 手机屏（0.2.39 实机）</sub>
+</p>
+
+Chrome 在手机屏上完整显示，Snug 按窗口最小宽度动态调整显示模式；断开 UU 后，窗口恢复原始位置。图为连接 iPhone 时从电脑采集的实际窗口与虚拟屏画面，并非 UU 手机客户端截图。
+
 ### 手机触控
 
 | 操作 | Snug 手机屏 |
@@ -85,9 +93,9 @@ Snug 根据手机型号调整虚拟显示比例，机型库也可与上游同步
 在 Windows 上完成首次设置、选择手机型号、开启触控和截图。关于页面提供当前版本、独立仓库与原项目致谢。
 
 <p align="center">
-<img src="Assets/WindowsMedia/windows-settings.png" width="44%" alt="Snug for Windows 0.2.38 设置页">
-<img src="Assets/WindowsMedia/windows-about.png" width="44%" alt="Snug for Windows 0.2.38 关于页">
-<br><sub>设置 · 关于（0.2.38 实际程序界面）</sub>
+<img src="Assets/WindowsMedia/windows-settings.png" width="44%" alt="Snug for Windows 0.2.39 设置页">
+<img src="Assets/WindowsMedia/windows-about.png" width="44%" alt="Snug for Windows 0.2.39 关于页">
+<br><sub>设置 · 关于（0.2.39 实际程序界面）</sub>
 </p>
 
 ## 使用方法
@@ -108,7 +116,7 @@ Snug 根据手机型号调整虚拟显示比例，机型库也可与上游同步
 
 控制端设备类型与实际推流显示器身份仍未知；部分截图、字号兼容、多屏恢复及完整手势矩阵仍待扩大验证。
 
-[验收记录](Platforms/Windows/ACCEPTANCE_20261118.md) · [更新记录](Platforms/Windows/CHANGELOG.md) · [已知限制](Platforms/Windows/README.md#已验证与限制)
+[验收记录](Platforms/Windows/CAPTURE_MONITOR_RECOVERY_20261118.md) · [更新记录](Platforms/Windows/CHANGELOG.md) · [已知限制](Platforms/Windows/README.md#已验证与限制)
 
 ## 开发
 

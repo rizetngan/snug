@@ -41,6 +41,14 @@ Ordinary remote desktop software scales the entire Windows desktop into a phone 
 - **Text and layout**: adjust text size in supported apps and accommodate minimum window widths.
 - **Screenshots and cropping**: enable the optional screenshot control to copy window images to the Windows clipboard and crop them.
 
+<p align="center">
+<img src="Assets/WindowsMedia/browser-window-before.png" width="46%" alt="The original Chrome test window on the primary Windows display">
+<img src="Assets/WindowsMedia/browser-phone-live.png" width="29%" alt="The same Chrome window fitted to the Snug phone display on 0.2.39, with the bottom return bar">
+<br><sub>Same test page · Left: original Windows window · Right: Snug phone display (live 0.2.39)</sub>
+</p>
+
+Snug adapts the display mode to Chrome's minimum window width and restores the original window position after UU disconnects. These are actual Windows window and virtual-display captures taken during an iPhone connection, not screenshots of the UU mobile client.
+
 ### Touch gestures
 
 | Gesture | Snug phone screen |
@@ -85,9 +93,9 @@ Snug sizes its virtual display to match the selected phone model. The catalog ca
 Configure the phone model, gestures and optional screenshots on Windows. The About dialog displays the version, independent repository and upstream credits.
 
 <p align="center">
-<img src="Assets/WindowsMedia/windows-settings.png" width="44%" alt="Snug for Windows 0.2.38 settings">
-<img src="Assets/WindowsMedia/windows-about.png" width="44%" alt="Snug for Windows 0.2.38 About dialog">
-<br><sub>Settings · About (actual 0.2.38 application UI)</sub>
+<img src="Assets/WindowsMedia/windows-settings.png" width="44%" alt="Snug for Windows 0.2.39 settings">
+<img src="Assets/WindowsMedia/windows-about.png" width="44%" alt="Snug for Windows 0.2.39 About dialog">
+<br><sub>Settings · About (actual 0.2.39 application UI)</sub>
 </p>
 
 ## Usage
@@ -108,7 +116,7 @@ November 18, 2026: 276 core tests, Release build, and iPhone 13 Pro + UU Remote 
 
 The controlling device type and actual streamed display identity remain unknown. Some app capture and zoom behavior, multi-monitor restoration and the full gesture matrix require broader testing.
 
-[Acceptance report](Platforms/Windows/ACCEPTANCE_20261118.md) · [Changelog](Platforms/Windows/CHANGELOG.md) · [Limitations](Platforms/Windows/README.en.md)
+[Acceptance report](Platforms/Windows/CAPTURE_MONITOR_RECOVERY_20261118.md) · [Changelog](Platforms/Windows/CHANGELOG.md) · [Limitations](Platforms/Windows/README.en.md)
 
 ## Development
 
