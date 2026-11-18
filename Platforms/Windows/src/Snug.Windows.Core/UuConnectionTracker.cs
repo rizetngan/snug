@@ -12,15 +12,16 @@ public readonly record struct UuSignals(
     bool PeerConnection = false)
 {
     public bool IsPresent => OverlayVisible || Controller is not null ||
-        Controllers is { Count: > 0 } || CaptureActive == true || LogFallback || PeerConnection;
+        Controllers is { Count: > 0 } || CaptureActive == true || LogFallback;
 
-    // Peer TCP and overlay evidence establish a session but not its device identity.
+    // Peer TCP is diagnostic context only: UU can keep a server-owned peer alive after capture has ended.
+    // Session presence follows the same three observable signals as upstream: overlay, controller table, or capture.
     // LogFallback remains compatibility evidence, not verified identity.
     public UuEvidenceKind Evidence =>
         Controllers is { Count: > 0 } || Controller is { } item &&
             !(item.Kind == ControllerKind.Unknown && item.Name == "UU Remote")
             ? UuEvidenceKind.ControllerTable
-            : OverlayVisible || CaptureActive == true || PeerConnection ? UuEvidenceKind.Session
+            : OverlayVisible || CaptureActive == true ? UuEvidenceKind.Session
             : LogFallback || Controller is not null ? UuEvidenceKind.LogFallback
             : UuEvidenceKind.None;
 }

@@ -14,14 +14,14 @@ public sealed class UuEvidenceTests
         Assert.True(tracker.WantsPhoneScreen(Start.AddSeconds(3)));
         Assert.Empty(tracker.Controllers);
     }
-    [Fact] public void PeerTcpIsSessionEvidenceAndRequestsPhoneScreen()
+    [Fact] public void PeerTcpAloneIsDiagnosticOnly()
     {
-        var sample = new UuSignals(false,null,null,PeerConnection:true);
-        Assert.True(sample.IsPresent);
-        Assert.Equal(UuEvidenceKind.Session,sample.Evidence);
+        var sample = new UuSignals(false,null,false,PeerConnection:true);
+        Assert.False(sample.IsPresent);
+        Assert.Equal(UuEvidenceKind.None,sample.Evidence);
         var tracker = new UuConnectionTracker();
         tracker.Update(sample,Start);
-        Assert.True(tracker.WantsPhoneScreen(Start.AddSeconds(3)));
+        Assert.False(tracker.WantsPhoneScreen(Start.AddSeconds(3)));
     }
     [Fact] public void ActualTableHasPrecedenceOverFallback()
     {

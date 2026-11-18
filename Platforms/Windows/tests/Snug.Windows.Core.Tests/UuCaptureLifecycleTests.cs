@@ -74,8 +74,8 @@ public sealed class UuCaptureLifecycleTests
         Assert.False(fused.IsPresent);Assert.False(fused.LogFallback);
         var phone=old with { Controllers=[new("iPhone",ControllerKind.Phone)] };
         Assert.True(UuCaptureLifecycle.Combine(phone,c.Snapshot(T)).IsPresent);
-        var peer = new UuSignals(false,null,null,PeerConnection:true);
-        Assert.True(UuCaptureLifecycle.Combine(peer,c.Snapshot(T)).IsPresent);
+        var peer = new UuSignals(false,null,false,PeerConnection:true);
+        Assert.False(UuCaptureLifecycle.Combine(peer,c.Snapshot(T)).IsPresent);
         c.Invalidate();Assert.Equal(old,UuCaptureLifecycle.Combine(old,c.Snapshot(T)));
     }
     [Fact] public void RealCaptureSupersedesLogOnlyWithoutClaimingPhone()
