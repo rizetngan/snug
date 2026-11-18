@@ -39,7 +39,7 @@ The output is artifacts/installer/Snug-Setup-0.2.38-x64.exe. The installer bundl
 
 268 core tests pass. Local Windows tests cover window placement/restoration, VS Code restart zoom recovery, Chrome tab input and two-axis scrolling, menu drag, force quit, native window capture and crop. Actual iPhone phone-screen re-entry and UU-disconnect cleanup have also passed.
 Menu momentum passed WPF timer tests. Native clipboard write after mobile screenshot/crop and the complete iPhone gesture matrix remain pending. VDD mode steps differ from macOS. Mixed physical-display configurations, some apps zoom behavior, cross-virtual-desktop handling and protected/GPU window capture need wider testing.
-The Windows UU detector now combines visible server overlays, the local controlled-device UIA table, established GameViewerServer peer TCP connections on non-80/non-443 ports, bounded PID-scoped streamer-log growth, and the SYSTEM ETW capture inventory. A held file or persistent 443 relay alone is not session evidence. Controller type and streamed-display identity remain unknown.
+The Windows UU detector combines visible server overlays, the local controlled-device UIA table, bounded streamer-log growth and the SYSTEM ETW capture inventory. Remote peer TCP is diagnostic context only and is not session-presence evidence; persistent 80/443 connections cannot extend a session. Controller type and streamed-display identity remain unknown.
 
 ## Credits and license
 

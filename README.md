@@ -23,7 +23,7 @@
 
 > 承接自 [aoyamashou/UUyc-companion](https://github.com/aoyamashou/UUyc-companion)（UU远程伴侣，作者 AoyamaShou，MIT 许可），完整保留原作者的版权声明与提交历史。2.0 起围绕「手机屏」重新设计。
 
-> **平台支持**：macOS 为原项目已发布平台；Windows 为在 Snug 2.5.0 基础上新增的社区贡献预览（0.2.33），保留原项目历史与功能设计，尚待上游审阅。下文功能细节与演示图以原版 macOS 为准；Windows 的安装、功能验证和限制见 [Windows 平台文档](Platforms/Windows/README.md)。
+> **平台支持**：macOS 为原项目已发布平台；Windows 为在 Snug 2.5.0 基础上新增的社区贡献预览（0.2.38），保留原项目历史与功能设计，尚待上游审阅。下文功能细节与演示图以原版 macOS 为准；Windows 的安装、功能验证和限制见 [Windows 平台文档](Platforms/Windows/README.md)。
 
 ## 📥 下载
 

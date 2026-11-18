@@ -23,7 +23,7 @@ Built for UU Remote<br>Native portrait display · Native gestures · App Library
 
 > Snug continues [aoyamashou/UUyc-companion](https://github.com/aoyamashou/UUyc-companion) (UU Remote Companion by AoyamaShou, MIT License), with the original author's copyright notices and commit history fully preserved. Since version 2.0, it has been redesigned around the phone screen.
 
-> **Platform support**: macOS is the original released platform. Windows is an added community contribution preview (0.2.33), based on Snug 2.5.0 and preserving its history and product design, pending upstream review. The feature details and screenshots below describe the original macOS implementation; see the [Windows platform guide](Platforms/Windows/README.en.md) for Windows installation, usage and limits.
+> **Platform support**: macOS is the original released platform. Windows is an added community contribution preview (0.2.38), based on Snug 2.5.0 and preserving its history and product design, pending upstream review. The feature details and screenshots below describe the original macOS implementation; see the [Windows platform guide](Platforms/Windows/README.en.md) for Windows installation, usage and limits.
 
 ## 📥 Download
 
