@@ -4,7 +4,7 @@ The README prioritizes actual Windows application and virtual-display captures, 
 
 | File | Origin |
 | --- | --- |
-| phone-running.png | Actual Windows virtual display capture from 0.2.22, November 16, 2026. Private browser-window titles redacted. |
+| phone-running.png | Actual Snug 0.2.38 Windows virtual display captured November 18, 2026, with UU connected. Native 1080 × 1834 pixels; app library shows Windows Settings, Calculator and Node.js. |
 | phone-browser-fit.png | Actual Windows virtual display capture from 0.2.17, November 16, 2026 (SNUG_0.2.17_BAR_RAISED.png). Chrome renders the browser-fit validation page; the return bar is visible. Local address path redacted. |
 | phone-all-apps.png | Actual 0.2.38 WPF catalog preview, November 18. |
 | phone-search.png | Actual 0.2.38 WPF catalog preview, November 18; searching for Notepad. |
