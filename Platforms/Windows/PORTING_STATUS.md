@@ -34,7 +34,7 @@ Windows support preserves the original Snug workflow: App Library, phone workspa
 - Live TCP table P/Invoke check decoded the current GameViewerServer connection correctly: one established peer on port 443, no non-web peer at the time sampled.
 - Current UU streamer log remained static at 6,983 bytes during a 6-second sample. This alone does not prove disconnection.
 - The SYSTEM capture monitor is running, but it started after the current GameViewerServer generation; its current capture inventory is therefore not a complete disconnected baseline.
-- Upgrade was not attempted: the Snug runtime is still running (PID 27044) and the phone-screen placement ledger is present. No process was closed and no ledger or display state was changed.
+- Upgrade was not attempted: Snug runtime PID 27044 is still running; phone-screen.json contains a live SystemSettings.exe placement (PID 14324), and the Snug Phone virtual monitor is active. No process was closed and no ledger or display state was changed.
 
 ## Known limitations
 
@@ -51,6 +51,7 @@ Windows support preserves the original Snug workflow: App Library, phone workspa
 - Candidate installer: Platforms/Windows/artifacts/installer/Snug-Setup-0.2.38-x64.exe
 - Installer itself is unsigned; it bundles the official signed VDD and pinned .NET runtime.
 - Built artifact size: 58,986,254 bytes. SHA-256: 446A36B2A3D45DBED83A021AFE942ED1C3249A1A5F9F7A1DC58F69BE0C00473B.
+- Installer copied to C:/Users/kj/Downloads/Snug-Setup-0.2.38-x64.exe; matching SHA-256 text file is beside it.
 - Source branch windows-platform-0.2.38 has been pushed to the user's fork rizetngan/snug at commit 3ad4af3. No duplicate PR will be opened against upstream after the maintainer declined Windows maintenance.
 
 ## Next work
