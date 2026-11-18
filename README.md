@@ -22,9 +22,9 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 
 **0.2.38 社区预览版** · Windows x64（Windows 10 22H2 已实测）
 
-[GitHub Releases](https://github.com/rizetngan/snug-for-windows/releases) · [从源码构建](Platforms/Windows/README.md#构建与打包)
+**[下载安装包（Windows x64）](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.38/Snug-Setup-0.2.38-x64.exe)** · [发布说明](https://github.com/rizetngan/snug-for-windows/releases/tag/v0.2.38) · [SHA-256 校验](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.38/SHA256SUMS.txt) · [从源码构建](Platforms/Windows/README.md#构建与打包)
 
-安装包文件名：`Snug-Setup-0.2.38-x64.exe`。当前已完成实机验收，独立 Release 待发布。安装包内置 .NET 运行时，首次安装需要管理员授权以安装签名虚拟显示驱动并注册 UU 捕获监视任务。安装器本身尚未签名。
+安装包文件名：`Snug-Setup-0.2.38-x64.exe`。社区预览版已公开发布；发布包在此前实机验收的基础上更新项目名称与链接，并重新通过自动化测试。安装包内置 .NET 运行时，首次安装需要管理员授权以安装签名虚拟显示驱动并注册 UU 捕获监视任务。安装器本身尚未签名。
 
 ## 核心功能
 

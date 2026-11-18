@@ -22,9 +22,9 @@ Snug for Windows is an independent community port of [Snug](https://github.com/z
 
 **0.2.38 community preview** · Windows x64 (tested on Windows 10 22H2).
 
-[GitHub Releases](https://github.com/rizetngan/snug-for-windows/releases) · [Build from source](Platforms/Windows/README.en.md)
+**[Download installer (Windows x64)](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.38/Snug-Setup-0.2.38-x64.exe)** · [Release notes](https://github.com/rizetngan/snug-for-windows/releases/tag/v0.2.38) · [SHA-256 checksums](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.38/SHA256SUMS.txt) · [Build from source](Platforms/Windows/README.en.md)
 
-Installer: `Snug-Setup-0.2.38-x64.exe`. Real-device acceptance is complete; the independent release is pending. The installer includes the .NET runtime. Administrator authorization is required on first installation for the signed virtual display driver and UU capture monitoring task. The installer itself is unsigned.
+Installer: `Snug-Setup-0.2.38-x64.exe`. The community preview is publicly available. The published installer includes branding updates after the real-device acceptance build and has passed automated tests again. The installer includes the .NET runtime. Administrator authorization is required on first installation for the signed virtual display driver and UU capture monitoring task. The installer itself is unsigned.
 
 ## Features
 
