@@ -24,6 +24,41 @@ internal static class CaptureMonitor
         try { targetSid = new SecurityIdentifier(sidText); }
         catch (ArgumentException) { return 2; }
 
+        // A stopped scheduled task can leave its ETW session behind. A stable
+        // name allows TraceEvent to reclaim it on the next service launch.
+        // The monitor task is single-instance; also reject parallel manual launches.
+        using var serviceInstance = new Mutex(false, UuCaptureTraceIdentity.ServiceMutex, out var ownsInstance);
+        if (!ownsInstance)
+        {
+            Log("Another Snug capture monitor instance already owns the service.");
+            return 4;
+        }
+
+        // Migrate randomly-named traces left by pre-0.2.39 persistent monitors.
+        // Do not touch temporary pilot/probe traces or any other provider's sessions.
+        try
+        {
+            foreach (var name in TraceEventSession.GetActiveSessionNames()
+                         .Where(UuCaptureTraceIdentity.IsLegacyMonitor))
+            {
+                try
+                {
+                    using var orphan = TraceEventSession.GetActiveSession(name);
+                    if (orphan is null) continue;
+                    orphan.Stop();
+                    Log("Reclaimed legacy monitor ETW session: " + name);
+                }
+                catch (Exception error)
+                {
+                    Log("Legacy monitor cleanup failed: " + error.GetType().Name + ": " + error.Message);
+                }
+            }
+        }
+        catch (Exception error)
+        {
+            Log("ETW session enumeration failed: " + error.GetType().Name + ": " + error.Message);
+        }
+
         var security = new PipeSecurity();
         security.AddAccessRule(new PipeAccessRule(
             new SecurityIdentifier(WellKnownSidType.NetworkSid, null),
@@ -44,7 +79,7 @@ internal static class CaptureMonitor
         var fatal = 0;
         long sequence = 0;
 
-        using var session = new TraceEventSession("Snug-UU-Monitor-" + Guid.NewGuid().ToString("N"))
+        using var session = new TraceEventSession(UuCaptureTraceIdentity.SessionName)
         {
             StopOnDispose = true,
             BufferSizeMB = 16
@@ -136,6 +171,7 @@ internal static class CaptureMonitor
 
         try
         {
+            Log("Enabling DxgKrnl provider for " + UuCaptureTraceIdentity.SessionName + ".");
             session.EnableProvider(Provider, TraceEventLevel.Verbose, 1,
                 new TraceEventProviderOptions { EventIDsToEnable = [192, 193] });
             // This timestamp is deliberately after provider enablement. A server

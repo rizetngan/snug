@@ -1,5 +1,13 @@
 # Windows changelog
 
+## 0.2.39 — capture monitor recovery candidate
+
+- Fix persistent ETW monitor session ownership: use a stable service-specific trace name instead of allocating a fresh random name every launch.
+- Reclaim orphaned GUID-named legacy Snug monitor sessions on startup; never stop temporary pilot/probe or unrelated ETW sessions.
+- Prevent concurrent monitor service launches and record provider initialization in the monitor log.
+- Candidate only: startup and active iPhone + UU session regression pending. No changes to the disconnect evidence or existing window restoration policy.
+
+
 ## 0.2.38 — final UU session evidence and acceptance
 
 - Align Windows UU session presence with the upstream model: visible overlay, controller-table evidence, active streamer/capture evidence and SYSTEM ETW capture inventory are authoritative signals.
