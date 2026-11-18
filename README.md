@@ -4,13 +4,13 @@
 
 <img src="Assets/AppIcon/AppIcon-1024.png" width="128" alt="Snug 图标">
 
-# Snug
+# Snug for Windows
 
-**让 Mac 与 Windows 电脑在手机上拥有原生级的操作体验**
+**让 Windows 电脑在手机上拥有原生级的操作体验**
 
 为 UU远程 打造<br>竖屏原生显示 · 原生手势 · App 资源库 · 适配所有手机
 
-[![最新版本](https://img.shields.io/github/v/release/zephyr4123/snug?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=blue)](https://github.com/zephyr4123/snug/releases/latest) ![Apple Silicon · Intel](https://img.shields.io/badge/Apple%20Silicon%20%C2%B7%20Intel-%E9%80%9A%E7%94%A8-success) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue) ![已公证](https://img.shields.io/badge/Apple-%E5%B7%B2%E5%85%AC%E8%AF%81-black?logo=apple) [![许可证 MIT](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E8%AF%81-MIT-green)](LICENSE)
+![Windows x64](https://img.shields.io/badge/Windows-x64-blue) ![Windows 0.2.38](https://img.shields.io/badge/Windows-0.2.38-success) [![MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 [下载](#-下载) · [原生体验](#-原生体验) · [App 资源库](#-app-资源库) · [适配](#-适配所有-app-与手机) · [对比](#-与其他方案的对比) · [安装](#-安装) · [使用](#-使用方式) · [限制](#-已知限制) · [开发](#-开发)
 
@@ -23,9 +23,13 @@
 
 > 承接自 [aoyamashou/UUyc-companion](https://github.com/aoyamashou/UUyc-companion)（UU远程伴侣，作者 AoyamaShou，MIT 许可），完整保留原作者的版权声明与提交历史。2.0 起围绕「手机屏」重新设计。
 
-> **平台支持**：macOS 为原项目已发布平台；Windows 为在 Snug 2.5.0 基础上新增的社区贡献预览（0.2.38），保留原项目历史与功能设计，尚待上游审阅。下文功能细节与演示图以原版 macOS 为准；Windows 的安装、功能验证和限制见 [Windows 平台文档](Platforms/Windows/README.md)。
+> **Snug for Windows** 由 rizetngan 独立维护，基于 [zephyr4123/snug](https://github.com/zephyr4123/snug) 2.5.0，保留原项目版权与历史。Windows 0.2.38 已通过 iPhone + UU 远程实机验收。下文原版演示与 macOS 下载仅作上游参考；Windows 安装与限制见 [Windows 平台文档](Platforms/Windows/README.md) 和 [验收记录](Platforms/Windows/ACCEPTANCE_20261118.md)。
 
 ## 📥 下载
+
+**Snug for Windows 0.2.38（社区预览）** · Windows 10 22H2 x64 已验收。请参阅 [Windows 构建与安装](Platforms/Windows/README.md)。当前尚未发布独立 GitHub Release。
+
+### 上游 macOS 下载（参考）
 
 <img src="Assets/AppIcon/AppIcon-1024.png" width="88" align="left" alt="Snug 图标">
 
@@ -40,7 +44,6 @@
 
 两个渠道提供的是同一个 macOS 安装包。
 
-**Snug for Windows（社区预览）** · Windows 10 22H2 x64 已验证；安装程序内置运行时与签名虚拟显示驱动。当前尚未纳入上游 Releases，请参阅 [Windows 构建与安装](Platforms/Windows/README.md)。
 
 ## ✨ 原生体验
 

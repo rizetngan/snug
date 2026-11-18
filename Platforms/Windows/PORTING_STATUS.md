@@ -1,10 +1,10 @@
-# Snug Windows — current project status
+# Snug for Windows — current project status
 
 Current candidate: 0.2.38
 Installed stable version: 0.2.36
 Upstream baseline: Snug 2.5.0
 Development branch: feat/windows-platform-support
-Published source branch: https://github.com/rizetngan/snug/tree/windows-platform-0.2.38 (publishing after local commit)
+Published source branch: https://github.com/rizetngan/snug-for-windows/tree/windows-platform-0.2.38
 0.2.38 source commit: 3ad4af3
 Release model: independently maintained Windows platform track; upstream has declined to merge or maintain the Windows port.
 
@@ -52,7 +52,7 @@ Windows support preserves the original Snug workflow: App Library, phone workspa
 - Installer itself is unsigned; it bundles the official signed VDD and pinned .NET runtime.
 - Built artifact size: 58,986,254 bytes. SHA-256: 446A36B2A3D45DBED83A021AFE942ED1C3249A1A5F9F7A1DC58F69BE0C00473B.
 - Installer copied to C:/Users/kj/Downloads/Snug-Setup-0.2.38-x64.exe; matching SHA-256 text file is beside it.
-- Source branch windows-platform-0.2.38 has been pushed to the user's fork rizetngan/snug at commit 3ad4af3. No duplicate PR will be opened against upstream after the maintainer declined Windows maintenance.
+- Source branch windows-platform-0.2.38 is maintained in rizetngan/snug-for-windows. Upstream attribution and history remain intact.
 
 ## Next work
 

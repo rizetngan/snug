@@ -1,4 +1,4 @@
-# Snug · Windows 平台支持
+# Snug for Windows
 
 [简体中文](README.md) · [English](README.en.md) · [项目主页](../../README.md)
 

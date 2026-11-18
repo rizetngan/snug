@@ -12,10 +12,10 @@
     <AssemblyName>Snug.Windows</AssemblyName>
     <RootNamespace>Snug.Windows</RootNamespace>
     <Version>0.2.38</Version>
-    <Product>Snug</Product>
+    <Product>Snug for Windows</Product>
     <Description>Snug — Windows platform support for the original mobile remote workspace.</Description>
     <Copyright>Copyright (c) 2026 AoyamaShou; Copyright (c) 2026 zephyr4123</Copyright>
-    <RepositoryUrl>https://github.com/zephyr4123/snug</RepositoryUrl>
+    <RepositoryUrl>https://github.com/rizetngan/snug-for-windows</RepositoryUrl>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Snug.ico</ApplicationIcon>
   </PropertyGroup>

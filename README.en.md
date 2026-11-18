@@ -4,13 +4,13 @@
 
 <img src="Assets/AppIcon/AppIcon-1024.png" width="128" alt="Snug icon">
 
-# Snug
+# Snug for Windows
 
-**A native-grade Mac and Windows experience, right on your phone**
+**A native-grade Windows experience, right on your phone**
 
 Built for UU Remote<br>Native portrait display · Native gestures · App Library · Fits every phone
 
-[![Latest release](https://img.shields.io/github/v/release/zephyr4123/snug?label=release&color=blue)](https://github.com/zephyr4123/snug/releases/latest) ![Apple Silicon · Intel](https://img.shields.io/badge/Apple%20Silicon%20%C2%B7%20Intel-Universal-success) ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue) ![Notarized](https://img.shields.io/badge/Apple-Notarized-black?logo=apple) [![License MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+![Windows x64](https://img.shields.io/badge/Windows-x64-blue) ![Windows 0.2.38](https://img.shields.io/badge/Windows-0.2.38-success) [![MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 [Download](#-download) · [Native Experience](#-native-experience) · [App Library](#-app-library) · [Fit](#-fits-every-app-and-phone) · [Comparison](#-compared-with-alternatives) · [Installation](#-installation) · [Usage](#-usage) · [Limitations](#-known-limitations) · [Development](#-development)
 
@@ -23,9 +23,13 @@ Built for UU Remote<br>Native portrait display · Native gestures · App Library
 
 > Snug continues [aoyamashou/UUyc-companion](https://github.com/aoyamashou/UUyc-companion) (UU Remote Companion by AoyamaShou, MIT License), with the original author's copyright notices and commit history fully preserved. Since version 2.0, it has been redesigned around the phone screen.
 
-> **Platform support**: macOS is the original released platform. Windows is an added community contribution preview (0.2.38), based on Snug 2.5.0 and preserving its history and product design, pending upstream review. The feature details and screenshots below describe the original macOS implementation; see the [Windows platform guide](Platforms/Windows/README.en.md) for Windows installation, usage and limits.
+> **Snug for Windows** is independently maintained by rizetngan, based on [zephyr4123/snug](https://github.com/zephyr4123/snug) 2.5.0, preserving its copyright and history. Windows 0.2.38 passed real iPhone + UU Remote acceptance. The original macOS demos and downloads below are upstream references; see the [Windows guide](Platforms/Windows/README.en.md) and [acceptance record](Platforms/Windows/ACCEPTANCE_20261118.md).
 
 ## 📥 Download
+
+**Snug for Windows 0.2.38 (community preview)** was accepted on Windows 10 22H2 x64. See [Windows build and installation](Platforms/Windows/README.en.md). A standalone GitHub Release has not yet been published.
+
+### Upstream macOS downloads (reference)
 
 <img src="Assets/AppIcon/AppIcon-1024.png" width="88" align="left" alt="Snug icon">
 
@@ -40,7 +44,6 @@ Built for UU Remote<br>Native portrait display · Native gestures · App Library
 
 Both sources provide the identical macOS package.
 
-**Snug for Windows (community preview)** · Tested on Windows 10 22H2 x64; the installer bundles the runtime and signed virtual display driver. Not yet published in upstream Releases; see [Windows build and installation](Platforms/Windows/README.en.md).
 
 ## ✨ Native Experience
 
