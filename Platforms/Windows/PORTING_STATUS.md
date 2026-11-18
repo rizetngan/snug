@@ -1,8 +1,11 @@
 # Snug Windows — current project status
 
-Current candidate: 0.2.37
+Current candidate: 0.2.38
+Installed stable version: 0.2.36
 Upstream baseline: Snug 2.5.0
-Development branch: feat/windows-platform-support (local Windows port branch; changes remain unpushed)
+Development branch: feat/windows-platform-support
+Published source branch: https://github.com/rizetngan/snug/tree/windows-platform-0.2.38 (publishing after local commit)
+Latest source branch commit before 0.2.38: 58246ab
 Release model: independently maintained Windows platform track; upstream has declined to merge or maintain the Windows port.
 
 ## Product scope
@@ -18,38 +21,41 @@ Windows support preserves the original Snug workflow: App Library, phone workspa
 - Screenshot preview/crop workflow using native window capture.
 - SYSTEM startup monitor for DxgKrnl capture lifecycle, with a one-way SID-scoped local pipe to the user app.
 - Same-session phone-screen re-entry after explicit dismissal.
-- Activity-based UU log fallback: two streamer-log growths within 3 seconds, expiring 2 seconds after the last growth. A locked file alone is not evidence of a live session.
+- UU session evidence fusion: visible GameViewerServer overlay, local controlled-device UIA table, established non-loopback GameViewerServer TCP peers on non-80/non-443 ports, PID-scoped streamer-log growth, and complete SYSTEM ETW capture inventory.
+- File locks and persistent 443 relay connections are not treated as session evidence by themselves. TCP peer evidence does not identify the controller device.
 
 ## Verified
 
-- Core regression suite: 259 passed, 0 failed.
+- Core regression suite: 268 passed, 0 failed.
 - Full Release solution build: 0 warnings, 0 errors.
 - Real iPhone: phone-screen exit and re-entry passed twice.
 - Real UU disconnect: test Chrome window restored to its original physical-display bounds, virtual phone display removed, restore ledger cleared, and SYSTEM monitor remained running.
 - Chrome app placement/restore and two-axis scroll regression checks passed.
-- Installed stable version before this candidate: 0.2.36. Candidate source and installer metadata now target 0.2.37.
+- Live TCP table P/Invoke check decoded the current GameViewerServer connection correctly: one established peer on port 443, no non-web peer at the time sampled.
+- Current UU streamer log remained static at 6,983 bytes during a 6-second sample. This alone does not prove disconnection.
+- The SYSTEM capture monitor is running, but it started after the current GameViewerServer generation; its current capture inventory is therefore not a complete disconnected baseline.
+- Upgrade was not attempted: the Snug runtime is still running (PID 27044) and the phone-screen placement ledger is present. No process was closed and no ledger or display state was changed.
 
 ## Known limitations
 
 1. UU's current Windows build does not expose reliable inbound controller identity through the available UIA/CLI surfaces.
 2. Capture events expose adapter-relative VidPnSourceId; on the test machine both physical and Snug display paths report source 0. Adapter LUID correlation is not yet reliable, so streamed-display identity remains Unknown.
-3. Native clipboard write after an actual iPhone screenshot/crop has not been accepted end-to-end.
-4. Complete iPhone gesture matrix, mixed multi-physical-monitor restoration, cross-virtual-desktop behavior, and some GPU/protected-window screenshot cases still need broader acceptance.
-5. Some application-specific zoom and custom dialog behavior may differ from macOS.
+3. The current UU server generation predates the active ETW monitor; a complete baseline will be available after a natural GameViewerServer restart while the monitor is already running.
+4. Native clipboard write after an actual iPhone screenshot/crop has not been accepted end-to-end.
+5. Complete iPhone gesture matrix, mixed multi-physical-monitor restoration, cross-virtual-desktop behavior, and some GPU/protected-window screenshot cases still need broader acceptance.
 
 ## Release and contribution
 
 - Build: Platforms/Windows/build-snug.cmd
 - Package: Platforms/Windows/package-snug.cmd
-- Installer: Platforms/Windows/artifacts/installer/Snug-Setup-0.2.37-x64.exe
+- Candidate installer: Platforms/Windows/artifacts/installer/Snug-Setup-0.2.38-x64.exe
 - Installer itself is unsigned; it bundles the official signed VDD and pinned .NET runtime.
-- Built artifact size: 58,979,964 bytes. SHA-256: 3CA39AD044BC4641CEF55FBC84954984933854B5922C68B86F3654B92697553E.
-- Upgrade preflight found a live phone-screen placement ledger and correctly aborted. No Snug process was closed, no ledger was cleared, and no installation was attempted; install after the current phone-screen episode ends normally.
-- Upstream PR #17 remains open, but the maintainer has said Windows support should be maintained independently. The connected GitHub integration currently has read-only permission on rizetngan/snug; no push or new repository was attempted.
+- Built artifact size: 58,986,254 bytes. SHA-256: 446A36B2A3D45DBED83A021AFE942ED1C3249A1A5F9F7A1DC58F69BE0C00473B.
+- Source branch windows-platform-0.2.37 is preserved on the user's fork rizetngan/snug. Candidate 0.2.38 source will be pushed to a separate branch; no duplicate PR will be opened against upstream after the maintainer declined Windows maintenance.
 
 ## Next work
 
-1. Install 0.2.37 after the live placement ledger clears; confirm idle behavior with a static locked log and active behavior during real streaming.
-2. Complete actual iPhone screenshot/crop/clipboard acceptance.
-3. Finish the real-device gesture matrix and mixed-display restore checks.
-4. Decide the standalone GitHub repository name/ownership before publishing the independent Windows release.
+1. Build and package 0.2.38, then install only after the active phone-screen episode and placement ledger have cleared.
+2. During a real iPhone UU session, confirm the peer TCP signal and ETW capture transition; after disconnect, confirm the signal clears and window/display cleanup completes.
+3. Complete actual iPhone screenshot/crop/clipboard acceptance.
+4. Finish the real-device gesture matrix and mixed-display restore checks.

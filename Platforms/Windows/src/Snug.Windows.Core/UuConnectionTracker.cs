@@ -8,18 +8,19 @@ public readonly record struct UuSignals(
     ControllerInfo? Controller,
     bool? CaptureActive,
     IReadOnlyList<ControllerInfo>? Controllers = null,
-    bool LogFallback = false)
+    bool LogFallback = false,
+    bool PeerConnection = false)
 {
     public bool IsPresent => OverlayVisible || Controller is not null ||
-        Controllers is { Count: > 0 } || CaptureActive == true || LogFallback;
+        Controllers is { Count: > 0 } || CaptureActive == true || LogFallback || PeerConnection;
 
-    // A compatibility hint can sustain the existing phone-screen policy,
-    // but must never be presented as a verified inbound connection.
+    // Peer TCP and overlay evidence establish a session but not its device identity.
+    // LogFallback remains compatibility evidence, not verified identity.
     public UuEvidenceKind Evidence =>
         Controllers is { Count: > 0 } || Controller is { } item &&
             !(item.Kind == ControllerKind.Unknown && item.Name == "UU Remote")
             ? UuEvidenceKind.ControllerTable
-            : OverlayVisible || CaptureActive == true ? UuEvidenceKind.Session
+            : OverlayVisible || CaptureActive == true || PeerConnection ? UuEvidenceKind.Session
             : LogFallback || Controller is not null ? UuEvidenceKind.LogFallback
             : UuEvidenceKind.None;
 }

@@ -77,7 +77,7 @@ public sealed class UuCaptureLifecycle
     }
 
     // A proven-inactive capture inventory supersedes sticky log handles.
-    // Independent overlay/controller-table evidence keeps its precedence.
+    // Independent overlay, peer and controller-table evidence keeps its precedence.
     // An incomplete inventory cannot suppress the existing fallback.
     public static UuSignals Combine(UuSignals current, UuCaptureSnapshot capture) =>
         capture.CaptureActive switch

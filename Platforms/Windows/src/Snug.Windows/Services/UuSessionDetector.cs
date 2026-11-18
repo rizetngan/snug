@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using Snug.Windows.Core;
+using Snug.Windows.Interop;
 
 namespace Snug.Windows.Services;
 
 /// <summary>
-/// Reads scoped controller-table evidence and bounded streamer-log activity hints.
+/// Reads the UU overlay, scoped controller table, active peer TCP and bounded streamer-log hints.
 /// The SYSTEM startup monitor overrides sticky hints only with a fresh,
 /// verified-generation, complete capture inventory.
 /// </summary>
@@ -85,6 +87,8 @@ public sealed class UuSessionDetector : IDisposable
                 }
                 else
                 {
+                    var overlayVisible = HasVisibleServerWindow(serverPid.Value);
+                    var peerConnection = HasActivePeerTcpConnection(serverPid.Value);
                     var logDirectory = ResolveLogDirectory(serverProcesses);
                     var streamPath = ResolveCurrentStreamerLog(logDirectory, serverPid.Value);
                     var streamActive = false;
@@ -111,12 +115,16 @@ public sealed class UuSessionDetector : IDisposable
                     }
 
                     signals = new UuSignals(
-                        OverlayVisible: false,
+                        OverlayVisible: overlayVisible,
                         Controller: null,
                         CaptureActive: null,
-                        LogFallback: streamActive);
+                        LogFallback: streamActive,
+                        PeerConnection: peerConnection);
 
-                    summary = "Server PID " + serverPid + " · streamer log " + streamStatus;
+                    summary = "Server PID " + serverPid
+                        + " · overlay " + (overlayVisible ? "visible" : "hidden")
+                        + " · peer TCP " + (peerConnection ? "active" : "none")
+                        + " · streamer log " + streamStatus;
                 }
             }
             finally
@@ -154,6 +162,80 @@ public sealed class UuSessionDetector : IDisposable
             .FirstOrDefault();
     }
 
+    private static bool HasVisibleServerWindow(int serverPid)
+    {
+        var visible = false;
+        NativeMethods.EnumWindows((handle, _) =>
+        {
+            if (!NativeMethods.IsWindowVisible(handle) || NativeMethods.IsHungAppWindow(handle))
+                return true;
+
+            NativeMethods.GetWindowThreadProcessId(handle, out var ownerPid);
+            if (ownerPid != (uint)serverPid) return true;
+            if (!NativeMethods.GetWindowRect(handle, out var rect)
+                || rect.Right - rect.Left <= 10 || rect.Bottom - rect.Top <= 10)
+                return true;
+
+            visible = true;
+            return false;
+        }, IntPtr.Zero);
+        return visible;
+    }
+
+    private const int AfInet = 2;
+    private const int TcpTableOwnerPidAll = 5;
+    private const uint TcpStateEstablished = 5;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MibTcpRowOwnerPid
+    {
+        public uint State;
+        public uint LocalAddress;
+        public uint LocalPort;
+        public uint RemoteAddress;
+        public uint RemotePort;
+        public uint OwningProcessId;
+    }
+
+    [DllImport("iphlpapi.dll", SetLastError = true)]
+    private static extern uint GetExtendedTcpTable(
+        IntPtr table, ref int size, bool ordered, int addressFamily, int tableClass, uint reserved);
+
+    private static bool HasActivePeerTcpConnection(int serverPid)
+    {
+        var size = 0;
+        _ = GetExtendedTcpTable(IntPtr.Zero, ref size, false, AfInet, TcpTableOwnerPidAll, 0);
+        if (size <= 0) return false;
+
+        var buffer = Marshal.AllocHGlobal(size);
+        try
+        {
+            var result = GetExtendedTcpTable(buffer, ref size, false, AfInet, TcpTableOwnerPidAll, 0);
+            if (result != 0) return false;
+
+            var count = Marshal.ReadInt32(buffer);
+            if (count <= 0 || count > 65536) return false;
+
+            var rowSize = Marshal.SizeOf<MibTcpRowOwnerPid>();
+            var rowPointer = IntPtr.Add(buffer, sizeof(uint));
+            for (var index = 0; index < count; index++)
+            {
+                var row = Marshal.PtrToStructure<MibTcpRowOwnerPid>(rowPointer);
+                rowPointer = IntPtr.Add(rowPointer, rowSize);
+                var remotePort = (int)(((row.RemotePort & 0xFFu) << 8)
+                    | ((row.RemotePort >> 8) & 0xFFu));
+
+                if (UuTcpPeerEvidence.IsActivePeer(
+                    row.OwningProcessId, (uint)serverPid, row.State, row.RemoteAddress, remotePort))
+                    return true;
+            }
+            return false;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
     private static string ResolveLogDirectory(IEnumerable<Process> serverProcesses)
     {
         foreach (var process in serverProcesses)
