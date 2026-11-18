@@ -1,5 +1,12 @@
 # Windows changelog
 
+## 0.2.41 — deferred mouse replay candidate
+
+- Fix a measured ~1-second low-level mouse-hook stall when replaying taps.
+- Deliver replayed mouse input on a separate serial worker, with each click submitted as a single SendInput batch. Keep gesture classification on the existing input thread.
+- Preserve double-click, long-press right-click, selection, scrolling, and release a synthetic held button on session changes.
+- Native Windows hook-chain and example-window tests pass. Actual 0.2.41 phone latency still needs verification; iOS/UU keyboard viewport issue remains open.
+
 ## 0.2.40 — input latency candidate
 
 - Move the global mouse hook and inertial scrolling to a dedicated input dispatcher, independent of UI work.

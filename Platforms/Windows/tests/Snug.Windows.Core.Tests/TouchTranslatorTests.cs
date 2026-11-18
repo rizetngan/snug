@@ -56,7 +56,13 @@ public sealed class TouchTranslatorTests
 
         Assert.Equal(TouchCommandKind.ReplayPress, response.Commands[0].Kind);
         Assert.Equal(TouchCommandKind.ReplayCurrent, response.Commands[1].Kind);
-        Assert.True(translator.Handle(new(PointerKind.Release, new(35, 30), 1.7), true).PassOriginal);
+        var moved = translator.Handle(new(PointerKind.Move, new(50,30), 1.65), true);
+        Assert.False(moved.PassOriginal);
+        Assert.Equal(TouchCommandKind.ReplayCurrent, Assert.Single(moved.Commands).Kind);
+        var released = translator.Handle(new(PointerKind.Release, new(50, 30), 1.7), true);
+        Assert.False(released.PassOriginal);
+        Assert.Equal(TouchCommandKind.ReplayCurrent, Assert.Single(released.Commands).Kind);
+        Assert.True(translator.Handle(new(PointerKind.Move, new(51,30), 1.8), true).PassOriginal);
     }
 
     [Theory]

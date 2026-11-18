@@ -12,6 +12,26 @@ public sealed class MouseGestureHook : IDisposable
     private static readonly UIntPtr InjectionMarker = new(0x534E5547);
     private readonly NativeMethods.LowLevelMouseProc _callback;
     private readonly Dispatcher _uiDispatcher;
+    private MouseReplayLane? _replay;
+    private void UpdateRegion(GestureRegion? next)
+    {
+        if (Equals(_region, next)) return;
+        void Apply()
+        {
+            if (Equals(_region, next)) return;
+            _replay?.Invalidate();
+            _translator = new TouchTranslator();
+            _coastTimer?.Stop();
+            _closeTap.Reset();
+            _passthroughBrowserChrome = false;
+            _region = next;
+        }
+        // Region changes and gesture production are serialized on the hook
+        // thread, so an obsolete gesture cannot enter a new replay generation.
+        if (_inputDispatcher is { } dispatcher && _running)
+            dispatcher.Invoke(Apply, DispatcherPriority.Send);
+        else Apply();
+    }
     // Install the hook on its own message pump, as upstream does.
     private Dispatcher? _inputDispatcher;
     private Thread? _inputThread;
@@ -21,7 +41,6 @@ public sealed class MouseGestureHook : IDisposable
     private volatile GestureRegion? _region;
     private TouchTranslator _translator = new();
     private IntPtr _hook;
-    private PointD _heldPress;
     private bool _passthroughBrowserChrome;
     private bool _disposed;
     private readonly CloseTapGuard _closeTap = new();
@@ -40,7 +59,7 @@ public sealed class MouseGestureHook : IDisposable
     {
         if (display is null || !PhoneDisplayModeSwitcher.IsSnugDisplay(display))
         {
-            _region = null;
+            UpdateRegion(null);
             return;
         }
         var mode = new NativeMethods.DEVMODE
@@ -54,14 +73,14 @@ public sealed class MouseGestureHook : IDisposable
         if (!NativeMethods.EnumDisplaySettings(display.DeviceName, -1, ref mode) ||
             mode.PelsWidth == 0 || mode.PelsHeight == 0)
         {
-            _region = null;
+            UpdateRegion(null);
             return;
         }
-        _region = new GestureRegion(
+        UpdateRegion(new GestureRegion(
             new WindowBounds(mode.PositionX, mode.PositionY,
                 checked((int)mode.PelsWidth), checked((int)mode.PelsHeight)),
             Math.Max(1, scale) *
-                Math.Max(1, (double)mode.PelsWidth / Math.Max(1, display.Bounds.Width)));
+                Math.Max(1, (double)mode.PelsWidth / Math.Max(1, display.Bounds.Width))));
     }
 
     private Dispatcher InputDispatcher()
@@ -101,6 +120,7 @@ public sealed class MouseGestureHook : IDisposable
     {
         if (_disposed) throw new ObjectDisposedException(nameof(MouseGestureHook));
         if (IsRunning) return true;
+        _replay ??= new MouseReplayLane(InjectionMarker);
         return InputDispatcher().Invoke(() =>
         {
             if (_running) return true;
@@ -126,7 +146,7 @@ public sealed class MouseGestureHook : IDisposable
         _passthroughBrowserChrome = false;
         _closeTap.Reset();
         _translator = new TouchTranslator();
-        _heldPress = default;
+        _replay?.Invalidate();
         if (_hook != IntPtr.Zero) NativeMethods.UnhookWindowsHookEx(_hook);
         _hook = IntPtr.Zero;
         _running = false;
@@ -175,7 +195,7 @@ public sealed class MouseGestureHook : IDisposable
             {
                 _passthroughBrowserChrome = false;
                 var stop = _translator.Handle(new TouchInput(kind.Value, point, seconds), false);
-                foreach (var command in stop.Commands) Execute(command, kind.Value, point);
+                DispatchCommands(stop.Commands, kind.Value);
                 _closeTap.Begin(close, seconds, snapshot.Scale);
                 return new IntPtr(1);
             }
@@ -203,7 +223,7 @@ public sealed class MouseGestureHook : IDisposable
             if (_passthroughBrowserChrome)
             {
                 var stop = _translator.Handle(new TouchInput(kind.Value, point, seconds), false);
-                foreach (var command in stop.Commands) Execute(command, kind.Value, point);
+                DispatchCommands(stop.Commands, kind.Value);
             }
         }
         if (_passthroughBrowserChrome)
@@ -213,10 +233,7 @@ public sealed class MouseGestureHook : IDisposable
         }
         var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside, snapshot.Scale);
 
-        if (kind == PointerKind.Press && !response.PassOriginal) _heldPress = point;
-        foreach (var command in response.Commands) Execute(command, kind.Value, point);
-
-        if (kind == PointerKind.Release) _heldPress = default;
+        DispatchCommands(response.Commands, kind.Value);
         if (_translator.IsCoasting && _coastTimer is { IsEnabled: false } timer) timer.Start();
 
         return response.PassOriginal
@@ -255,31 +272,33 @@ public sealed class MouseGestureHook : IDisposable
         catch (InvalidOperationException) { return false; }
         catch (System.ComponentModel.Win32Exception) { return false; }
     }
-    private void Execute(TouchCommand command, PointerKind currentKind, PointD current)
+    private void DispatchCommands(IReadOnlyList<TouchCommand> commands, PointerKind currentKind)
     {
-        switch (command.Kind)
+        List<MouseReplayAction>? replay = null;
+        foreach (var command in commands)
         {
-            case TouchCommandKind.ReplayPress:
-                NativeMethods.SetCursorPos((int)_heldPress.X, (int)_heldPress.Y);
-                NativeMethods.mouse_event(NativeMethods.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, InjectionMarker);
-                break;
-
-            case TouchCommandKind.ReplayCurrent:
-                NativeMethods.SetCursorPos((int)current.X, (int)current.Y);
-                if (currentKind == PointerKind.Release)
-                    NativeMethods.mouse_event(NativeMethods.MOUSEEVENTF_LEFTUP, 0, 0, 0, InjectionMarker);
-                break;
-
-            case TouchCommandKind.RightClick:
-                NativeMethods.SetCursorPos((int)command.Location.X, (int)command.Location.Y);
-                NativeMethods.mouse_event(NativeMethods.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, InjectionMarker);
-                NativeMethods.mouse_event(NativeMethods.MOUSEEVENTF_RIGHTUP, 0, 0, 0, InjectionMarker);
-                break;
-
-            case TouchCommandKind.Scroll:
-                if (command.Scroll is { } step) PostScroll(step);
-                break;
+            switch (command.Kind)
+            {
+                case TouchCommandKind.ReplayPress:
+                    (replay ??= []).Add(new(MouseReplayKind.LeftDown, command.Location));
+                    break;
+                case TouchCommandKind.ReplayCurrent:
+                    (replay ??= []).Add(new(currentKind == PointerKind.Release
+                        ? MouseReplayKind.LeftUp : MouseReplayKind.Move, command.Location));
+                    break;
+                case TouchCommandKind.RightClick:
+                    (replay ??= []).Add(new(MouseReplayKind.RightDown, command.Location));
+                    replay.Add(new(MouseReplayKind.RightUp, command.Location));
+                    break;
+                case TouchCommandKind.Scroll:
+                    if (command.Scroll is { } step) PostScroll(step);
+                    break;
+            }
         }
+        // Never call SetCursorPos, mouse_event or SendInput from WH_MOUSE_LL.
+        // Windows waits for its hook chain before delivering injected input.
+        // An independent serial lane can inject while this hook keeps pumping.
+        if (replay is not null) _replay?.Enqueue(replay.ToArray());
     }
 
     private static void PostScroll(ScrollStep step)
@@ -313,6 +332,8 @@ public sealed class MouseGestureHook : IDisposable
             }, DispatcherPriority.Send);
             _inputThread?.Join(TimeSpan.FromSeconds(2));
         }
+        _replay?.Dispose();
+        _replay = null;
         _disposed = true;
     }
 }

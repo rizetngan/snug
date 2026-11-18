@@ -6,8 +6,9 @@ using Snug.Windows.Services;
 internal static class Program
 {
     [STAThread]
-    public static int Main()
+    public static int Main(string[] args)
     {
+        if (args.Length > 0) return ReplayTiming.Run(args);
         using var hook = new MouseGestureHook();
         // Region remains null: global hook passes every event untouched.
         if (!hook.Start() || !hook.IsRunning) throw new Exception("Start failed");

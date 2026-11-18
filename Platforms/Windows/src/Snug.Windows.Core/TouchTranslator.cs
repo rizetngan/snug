@@ -85,7 +85,11 @@ public sealed class TouchTranslator
 
     private TouchResponse Move(TouchInput input)
     {
-        if (_phase is GesturePhase.Idle or GesturePhase.Selecting) return TouchResponse.Pass;
+        if (_phase == GesturePhase.Idle) return TouchResponse.Pass;
+        // Windows replays selection through the same serial lane as the
+        // synthetic press. An original move/up must not overtake that press.
+        if (_phase == GesturePhase.Selecting)
+            return TouchResponse.Swallow(new TouchCommand(TouchCommandKind.ReplayCurrent, input.Location));
         if (_phase == GesturePhase.Pending)
         {
             if (Distance(input.Location, _origin) < Slop * _gestureScale) return TouchResponse.Swallow();
@@ -109,10 +113,11 @@ public sealed class TouchTranslator
 
     private TouchResponse Release(TouchInput input)
     {
-        if (_phase is GesturePhase.Idle or GesturePhase.Selecting)
+        if (_phase == GesturePhase.Idle) return TouchResponse.Pass;
+        if (_phase == GesturePhase.Selecting)
         {
             _phase = GesturePhase.Idle;
-            return TouchResponse.Pass;
+            return TouchResponse.Swallow(new TouchCommand(TouchCommandKind.ReplayCurrent, input.Location));
         }
 
         if (_phase == GesturePhase.Pending)
