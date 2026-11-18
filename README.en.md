@@ -12,9 +12,17 @@ Built for UU Remote · Dedicated portrait display · Native gestures · App Libr
 
 [简体中文](README.md) · English
 
-[Download](#download) · [Usage](#usage) · [Development](#development)
+[Download](#download) · [Native experience](#native-experience) · [App Library](#app-library) · [Usage](#usage) · [Development](#development)
 
 </div>
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows phone screen: running applications and windows">
+<img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="Windows App Library: installed applications">
+<img src="Assets/WindowsMedia/phone-models.png" width="30%" alt="Search and select a phone model">
+<br><sub>Running · All apps · Phone models</sub>
+<br><sub>Windows virtual display and local preview screenshots; private window titles are redacted.</sub>
+</p>
 
 Snug for Windows is an independent community port of [Snug](https://github.com/zephyr4123/snug), maintained by [rizetngan](https://github.com/rizetngan). Based on Snug 2.5.0, it uses C# / .NET 10 / WPF. For macOS, visit the upstream project.
 
@@ -26,13 +34,52 @@ Snug for Windows is an independent community port of [Snug](https://github.com/z
 
 Installer: `Snug-Setup-0.2.38-x64.exe`. The community preview is publicly available. The published installer includes branding updates after the real-device acceptance build and has passed automated tests again. The installer includes the .NET runtime. Administrator authorization is required on first installation for the signed virtual display driver and UU capture monitoring task. The installer itself is unsigned.
 
-## Features
+## Native experience
 
-- Dedicated portrait phone display with window fitting and restoration.
-- App Library for finding, opening, switching and managing app windows.
-- Single-finger and two-axis scrolling, long-press gestures and menu inertia.
-- Optional window screenshots and cropping to the Windows clipboard.
-- Exit and re-enter the phone display during the same active UU session.
+Ordinary remote desktop software scales the entire Windows desktop into a phone screen, making small text and controls harder to use. Snug creates a dedicated portrait display for UU Remote and fits Windows app windows to it, rather than requiring repeated whole-desktop zooming.
+
+- **Window fitting**: fit the selected window to the phone display, restoring the previous managed window when switching.
+- **Text and layout**: adjust text size in supported apps and accommodate minimum window widths.
+- **Screenshots and cropping**: enable the optional screenshot control to copy window images to the Windows clipboard and crop them.
+
+### Touch gestures
+
+| Gesture | Snug phone screen |
+| :--- | :--- |
+| One-finger swipe | Scroll pages and lists |
+| Horizontal swipe | Scroll supported horizontal areas |
+| Long press | Long-press interaction |
+| Bottom return bar | Return to the App Library |
+
+Gesture behavior depends on the UU touch mode and application compatibility.
+
+## App Library
+
+View running apps, search windows, launch installed apps and switch between windows directly from the phone.
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Running applications and windows">
+<img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="Installed app icon grid">
+<img src="Assets/WindowsMedia/phone-search.png" width="30%" alt="Search Chrome apps and windows">
+<br><sub>Running · All · Search apps and windows (private titles redacted)</sub>
+</p>
+
+| Action | How |
+| :--- | :--- |
+| Open a window | Tap its window row |
+| Launch an app | Choose an app in All |
+| Search | Find apps or window titles |
+| New and close | Use the controls on the app card |
+| Return to the library | Tap the bottom return bar |
+
+## Phone model fitting
+
+Snug sizes its virtual display to match the selected phone model. The catalog can be synchronized with upstream. Select a model from phone-screen controls or Windows settings; unlisted devices can use custom dimensions.
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-models.png" width="29%" alt="iPhone 13 series model picker">
+<br><sub>Search for a model and view its resolution</sub>
+</p>
 
 ## Usage
 
@@ -42,7 +89,9 @@ Installer: `Snug-Setup-0.2.38-x64.exe`. The community preview is publicly availa
 4. Choose a window from the App Library; tap the bottom return bar to return to the library.
 5. After exiting the phone display, use the re-entry control on the primary display to recreate it, then switch displays in UU. On disconnect, Snug restores managed windows and releases the virtual display.
 
-[Full Windows guide](Platforms/Windows/README.en.md)
+<p align="center"><img src="Assets/WindowsMedia/phone-reentry.png" width="220" alt="Re-enter phone screen button on the primary display"><br><sub>Windows: re-enter the phone display in the same active UU session</sub></p>
+
+[Full Windows guide](Platforms/Windows/README.en.md) · [Screenshot provenance](Assets/WindowsMedia/README.md)
 
 ## Validation and limitations
 

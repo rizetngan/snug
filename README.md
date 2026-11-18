@@ -12,9 +12,17 @@
 
 简体中文 · [English](README.en.md)
 
-[下载](#下载安装) · [使用](#使用方法) · [开发](#开发)
+[下载](#下载安装) · [原生体验](#原生体验) · [App 资源库](#app-资源库) · [使用](#使用方法) · [开发](#开发)
 
 </div>
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows 手机屏：运行中的应用与窗口">
+<img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="Windows App 资源库：全部应用">
+<img src="Assets/WindowsMedia/phone-models.png" width="30%" alt="搜索并选择手机型号">
+<br><sub>运行中 · 全部应用 · 手机型号</sub>
+<br><sub>Windows 实际虚拟屏与本地预览截图，部分窗口标题已隐藏。</sub>
+</p>
 
 Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 Windows 移植项目，由 [rizetngan](https://github.com/rizetngan) 维护。基于 Snug 2.5.0，使用 C# / .NET 10 / WPF。macOS 用户请前往上游原项目。
 
@@ -26,13 +34,52 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 
 安装包文件名：`Snug-Setup-0.2.38-x64.exe`。社区预览版已公开发布；发布包在此前实机验收的基础上更新项目名称与链接，并重新通过自动化测试。安装包内置 .NET 运行时，首次安装需要管理员授权以安装签名虚拟显示驱动并注册 UU 捕获监视任务。安装器本身尚未签名。
 
-## 核心功能
+## 原生体验
 
-- 专属手机竖屏，应用窗口适配与还原
-- App 资源库，查找、打开、切换及管理应用窗口
-- 单指滚动、双轴滚动、长按交互与菜单惯性
-- 可选窗口截图与裁剪，复制到 Windows 剪贴板
-- 同一有效 UU 会话中退出手机屏后可以重新进入
+普通远程控制将整个 Windows 桌面缩放到手机屏幕上，小字和控件不易操作。Snug 为 UU 远程创建独立的竖屏，将正在使用的 Windows 窗口适配到手机尺寸；不用在手机上反复缩放整块桌面。
+
+- **窗口铺满**：选择应用窗口后，按手机屏幕尺寸调整窗口；切换时恢复原来的受管理窗口。
+- **字号与布局**：兼容的应用可调整字号；支持应用的最小宽度适配。
+- **截图与裁剪**：在设置中开启截图后，可以将窗口画面复制到 Windows 剪贴板，再按需裁剪。
+
+### 手机触控
+
+| 操作 | Snug 手机屏 |
+| :--- | :--- |
+| 单指滑动 | 滚动页面与列表 |
+| 水平滑动 | 对支持横向滚动的区域进行横向操作 |
+| 长按 | 支持长按交互 |
+| 底部返回条 | 返回 App 资源库 |
+
+实际手势表现与 UU 触控模式及应用兼容性有关。
+
+## App 资源库
+
+无需回到电脑桌面，即可查看运行中的应用、搜索窗口、启动已安装的应用或切换至其他窗口。
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="正在运行的应用与窗口">
+<img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="全部应用图标网格">
+<img src="Assets/WindowsMedia/phone-search.png" width="30%" alt="搜索 Chrome 应用与窗口">
+<br><sub>运行中 · 全部 · 搜索应用与窗口（私人窗口标题已隐藏）</sub>
+</p>
+
+| 操作 | 方式 |
+| :--- | :--- |
+| 打开窗口 | 轻点对应的窗口条目 |
+| 打开应用 | 在「全部」中选择应用 |
+| 搜索 | 按应用名或窗口标题查找 |
+| 新建与关闭 | 使用应用卡片上的按钮 |
+| 返回资源库 | 轻点底部返回条 |
+
+## 手机型号适配
+
+Snug 根据手机型号调整虚拟显示比例，机型库也可与上游同步。首次使用时，在手机屏右上角或 Windows 设置中选择机型；未列出的设备可以使用自定义尺寸。
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-models.png" width="29%" alt="iPhone 13 系列机型选择">
+<br><sub>机型选择：搜索型号并查看屏幕分辨率</sub>
+</p>
 
 ## 使用方法
 
@@ -42,7 +89,9 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 4. 在 App 资源库打开窗口，轻点底部返回条切回资源库。
 5. 退出手机屏后，可从主屏右下角「进入手机屏」重新创建，再通过 UU 切换显示器。结束远程后，Snug 恢复受管理窗口并释放虚拟屏。
 
-[详细安装与使用文档](Platforms/Windows/README.md)
+<p align="center"><img src="Assets/WindowsMedia/phone-reentry.png" width="220" alt="主显示器右下角的进入手机屏按钮"><br><sub>Windows 特色：同一有效 UU 会话内重新进入手机屏</sub></p>
+
+[详细安装与使用文档](Platforms/Windows/README.md) · [截图来源](Assets/WindowsMedia/README.md)
 
 ## 验证与限制
 
