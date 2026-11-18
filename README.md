@@ -17,10 +17,11 @@
 </div>
 
 <p align="center">
-<img src="Assets/WindowsMedia/phone-running.png" width="36%" alt="Windows 手机屏：App 资源库">
-<img src="Assets/WindowsMedia/phone-browser-fit.png" width="36%" alt="Chrome 窗口适配 Snug 手机屏，底部返回条可见">
-<br><sub>App 资源库 · Chrome 窗口铺屏</sub>
-<br><sub>Windows 实际虚拟屏测试截图，私人标题及本地路径已隐藏。</sub>
+<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows 手机屏：App 资源库">
+<img src="Assets/WindowsMedia/phone-tour-live.gif" width="30%" alt="实机逐帧演示：搜索终端、打开及进入手机屏">
+<img src="Assets/WindowsMedia/browser-phone-live.png" width="30%" alt="Chrome 在 Snug 手机屏完整铺满">
+<br><sub>App 资源库 · 终端操作演示 · Chrome 铺屏</sub>
+<br><sub>实际 Windows 虚拟屏采集：动态演示经剪辑，非 UU 手机客户端录屏。</sub>
 </p>
 
 Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 Windows 移植项目，由 [rizetngan](https://github.com/rizetngan) 维护。基于 Snug 2.5.0，使用 C# / .NET 10 / WPF。macOS 用户请前往上游原项目。
@@ -43,11 +44,20 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 
 <p align="center">
 <img src="Assets/WindowsMedia/browser-window-before.png" width="46%" alt="同一 Chrome 测试窗口在 Windows 主屏上的原始大小">
-<img src="Assets/WindowsMedia/browser-phone-live.png" width="29%" alt="0.2.39 将同一 Chrome 窗口适配到 Snug 手机屏，保留底部返回条">
+<img src="Assets/WindowsMedia/browser-phone-live.png" width="29%" alt="0.2.39 将Chrome 测试页面适配到 Snug 手机屏，保留底部返回条">
 <br><sub>同一测试页面 · 左：原始 Windows 窗口 · 右：Snug 手机屏（0.2.39 实机）</sub>
 </p>
 
 Chrome 在手机屏上完整显示，Snug 按窗口最小宽度动态调整显示模式；断开 UU 后，窗口恢复原始位置。图为连接 iPhone 时从电脑采集的实际窗口与虚拟屏画面，并非 UU 手机客户端截图。
+
+### 编码工作场景
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-terminal-live.png" width="30%" alt="真实 Windows 终端：Claude Code CLI 版本与 Node.js 测试结果">
+<br><sub>独立示例项目 · 真实终端输出 · 底部返回条</sub>
+</p>
+
+在 App 资源库搜索窗口，打开已有终端并切换到手机屏。演示使用本地 Claude Code CLI 版本查询及 Node.js 测试，未调用模型；虚拟屏采集由电脑端操作完成。
 
 ### 手机触控
 

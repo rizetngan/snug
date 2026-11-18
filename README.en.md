@@ -17,10 +17,11 @@ Built for UU Remote · Dedicated portrait display · Native gestures · App Libr
 </div>
 
 <p align="center">
-<img src="Assets/WindowsMedia/phone-running.png" width="36%" alt="App Library on the Windows phone display">
-<img src="Assets/WindowsMedia/phone-browser-fit.png" width="36%" alt="Chrome fitted to the Snug phone display with the return bar">
-<br><sub>App Library · Chrome window fitted to the phone display</sub>
-<br><sub>Actual Windows virtual-display test captures; private titles and local paths redacted.</sub>
+<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="App Library on the Windows phone display">
+<img src="Assets/WindowsMedia/phone-tour-live.gif" width="30%" alt="Live captured demonstration: search, open and fit a terminal">
+<img src="Assets/WindowsMedia/browser-phone-live.png" width="30%" alt="Chrome fitted to the Snug phone display">
+<br><sub>App Library · Terminal demonstration · Chrome window fitting</sub>
+<br><sub>Actual Windows virtual-display captures; edited time-sampled demonstration, not a UU mobile client recording.</sub>
 </p>
 
 Snug for Windows is an independent community port of [Snug](https://github.com/zephyr4123/snug), maintained by [rizetngan](https://github.com/rizetngan). Based on Snug 2.5.0, it uses C# / .NET 10 / WPF. For macOS, visit the upstream project.
@@ -43,11 +44,20 @@ Ordinary remote desktop software scales the entire Windows desktop into a phone 
 
 <p align="center">
 <img src="Assets/WindowsMedia/browser-window-before.png" width="46%" alt="The original Chrome test window on the primary Windows display">
-<img src="Assets/WindowsMedia/browser-phone-live.png" width="29%" alt="The same Chrome window fitted to the Snug phone display on 0.2.39, with the bottom return bar">
+<img src="Assets/WindowsMedia/browser-phone-live.png" width="29%" alt="Chrome displaying the same sample page fitted to the Snug phone display on 0.2.39, with the bottom return bar">
 <br><sub>Same test page · Left: original Windows window · Right: Snug phone display (live 0.2.39)</sub>
 </p>
 
 Snug adapts the display mode to Chrome's minimum window width and restores the original window position after UU disconnects. These are actual Windows window and virtual-display captures taken during an iPhone connection, not screenshots of the UU mobile client.
+
+### Coding workflow
+
+<p align="center">
+<img src="Assets/WindowsMedia/phone-terminal-live.png" width="30%" alt="Actual Windows terminal: Claude Code CLI version and Node.js test results">
+<br><sub>Isolated sample project · Actual terminal output · Return bar</sub>
+</p>
+
+Search for a window in the App Library, then open the existing terminal on the phone display. The demonstration uses a local Claude Code CLI version check and Node.js tests without model inference; the virtual display was operated from the PC.
 
 ### Touch gestures
 
