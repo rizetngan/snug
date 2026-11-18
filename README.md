@@ -8,7 +8,7 @@
 
 为 UU 远程打造 · 独立竖屏 · 原生触控 · App 资源库
 
-![Windows x64](https://img.shields.io/badge/Windows-x64-blue) ![Preview](https://img.shields.io/badge/version-0.2.38%20preview-orange) [![MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+![Windows x64](https://img.shields.io/badge/Windows-x64-blue) ![Preview](https://img.shields.io/badge/version-0.2.39%20preview-orange) [![MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 简体中文 · [English](README.en.md)
 
@@ -27,11 +27,11 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 
 ## 下载安装
 
-**0.2.38 社区预览版** · Windows x64（Windows 10 22H2 已实测）
+**0.2.39 社区预览版** · Windows x64（Windows 10 22H2 已实测）
 
-**[下载安装包（Windows x64）](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.38/Snug-Setup-0.2.38-x64.exe)** · [发布说明](https://github.com/rizetngan/snug-for-windows/releases/tag/v0.2.38) · [SHA-256 校验](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.38/SHA256SUMS.txt) · [从源码构建](Platforms/Windows/README.md#构建与打包)
+**[下载安装包（Windows x64）](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.39/Snug-Setup-0.2.39-x64.exe)** · [发布说明](https://github.com/rizetngan/snug-for-windows/releases/tag/v0.2.39) · [SHA-256 校验](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.39/SHA256SUMS.txt) · [从源码构建](Platforms/Windows/README.md#构建与打包)
 
-安装包文件名：`Snug-Setup-0.2.38-x64.exe`。社区预览版已公开发布；发布包在此前实机验收的基础上更新项目名称与链接，并重新通过自动化测试。安装包内置 .NET 运行时，首次安装需要管理员授权以安装签名虚拟显示驱动并注册 UU 捕获监视任务。安装器本身尚未签名。
+安装包：Snug-Setup-0.2.39-x64.exe。本次社区预览版修复 ETW 监视器会话泄漏，已通过实机验收。内置 .NET 运行时及签名虚拟显示驱动；安装器本身未签名，需管理员授权。升级后若无法识别已运行的 UU 服务，请先断开 UU，再重启其 Windows 服务或重启电脑一次。
 
 ## 原生体验
 
@@ -104,7 +104,7 @@ Snug 根据手机型号调整虚拟显示比例，机型库也可与上游同步
 
 ## 验证与限制
 
-2026-11-18：268 项核心测试通过，Release 构建通过，iPhone + UU 远程实机验收通过，包括退出、重新进入及断开后的恢复。
+2026-11-18：276 项核心测试、Release 构建及 iPhone 13 Pro + UU 远程实机验收通过：后台监视器恢复、手机屏稳定、Chrome 铺屏、退出重进、断开后窗口还原及虚拟屏释放。
 
 控制端设备类型与实际推流显示器身份仍未知；部分截图、字号兼容、多屏恢复及完整手势矩阵仍待扩大验证。
 
