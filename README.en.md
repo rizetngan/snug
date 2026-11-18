@@ -19,8 +19,8 @@ Built for UU Remote · Dedicated portrait display · Native gestures · App Libr
 <p align="center">
 <img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="App Library on the Windows phone display">
 <img src="Assets/WindowsMedia/phone-tour-live.gif" width="30%" alt="Live captured demonstration: search, open and fit a terminal">
-<img src="Assets/WindowsMedia/browser-phone-live.png" width="30%" alt="Chrome fitted to the Snug phone display">
-<br><sub>App Library · Terminal demonstration · Chrome window fitting</sub>
+<img src="Assets/WindowsMedia/phone-gpt-live.png" width="30%" alt="Actual ChatGPT desktop app on the Snug phone display">
+<br><sub>App Library · Terminal demonstration · ChatGPT desktop</sub>
 <br><sub>Actual Windows virtual-display captures; edited time-sampled demonstration, not a UU mobile client recording.</sub>
 </p>
 
@@ -54,10 +54,11 @@ Snug adapts the display mode to Chrome's minimum window width and restores the o
 
 <p align="center">
 <img src="Assets/WindowsMedia/phone-terminal-live.png" width="30%" alt="Actual Windows terminal: Claude Code CLI version and Node.js test results">
-<br><sub>Isolated sample project · Actual terminal output · Return bar</sub>
+<img src="Assets/WindowsMedia/phone-gpt-live.png" width="30%" alt="ChatGPT desktop Codex workspace">
+<br><sub>Actual terminal · ChatGPT desktop · Return bar</sub>
 </p>
 
-Search for a window in the App Library, then open the existing terminal on the phone display. The demonstration uses a local Claude Code CLI version check and Node.js tests without model inference; the virtual display was operated from the PC.
+Search for a window in the App Library, then open the existing terminal on the phone display. The demonstration uses a local Claude Code CLI version check and Node.js tests without model inference; the virtual display was operated from the PC. The ChatGPT screenshot shows the real desktop workspace during an iPhone + UU connection; profile, workspace name and model label are redacted.
 
 ### Touch gestures
 

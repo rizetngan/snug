@@ -19,8 +19,8 @@
 <p align="center">
 <img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows 手机屏：App 资源库">
 <img src="Assets/WindowsMedia/phone-tour-live.gif" width="30%" alt="实机逐帧演示：搜索终端、打开及进入手机屏">
-<img src="Assets/WindowsMedia/browser-phone-live.png" width="30%" alt="Chrome 在 Snug 手机屏完整铺满">
-<br><sub>App 资源库 · 终端操作演示 · Chrome 铺屏</sub>
+<img src="Assets/WindowsMedia/phone-gpt-live.png" width="30%" alt="ChatGPT 桌面端在 Snug 手机屏上的实际界面">
+<br><sub>App 资源库 · 终端操作演示 · ChatGPT 桌面端</sub>
 <br><sub>实际 Windows 虚拟屏采集：动态演示经剪辑，非 UU 手机客户端录屏。</sub>
 </p>
 
@@ -54,10 +54,11 @@ Chrome 在手机屏上完整显示，Snug 按窗口最小宽度动态调整显�
 
 <p align="center">
 <img src="Assets/WindowsMedia/phone-terminal-live.png" width="30%" alt="真实 Windows 终端：Claude Code CLI 版本与 Node.js 测试结果">
-<br><sub>独立示例项目 · 真实终端输出 · 底部返回条</sub>
+<img src="Assets/WindowsMedia/phone-gpt-live.png" width="30%" alt="ChatGPT 桌面端 Codex 工作区">
+<br><sub>真实终端 · ChatGPT 桌面端 · 底部返回条</sub>
 </p>
 
-在 App 资源库搜索窗口，打开已有终端并切换到手机屏。演示使用本地 Claude Code CLI 版本查询及 Node.js 测试，未调用模型；虚拟屏采集由电脑端操作完成。
+在 App 资源库搜索窗口，打开已有终端并切换到手机屏。演示使用本地 Claude Code CLI 版本查询及 Node.js 测试，未调用模型；虚拟屏采集由电脑端操作完成。ChatGPT 图为用户通过 iPhone 连接 UU 时打开的实际桌面端工作区；账号标识、工作区名称及模型标签已隐藏。
 
 ### 手机触控
 
