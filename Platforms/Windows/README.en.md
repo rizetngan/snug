@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md) · [Project home](../../README.en.md)
 
-Snug enhances display and touch interaction for UU Remote. This community contribution adds Windows support to [Snug](https://github.com/zephyr4123/snug) 2.5.0, keeping the original App Library, phone workspace, window restoration, gestures and screenshot workflow as well as macOS implementation and copyright history. Windows 0.2.36 is a community preview pending upstream review, not an official upstream release.
+Snug enhances display and touch interaction for UU Remote. This community contribution adds Windows support to [Snug](https://github.com/zephyr4123/snug) 2.5.0, preserving the original App Library, phone workspace, window restoration, gestures and screenshot workflow alongside macOS. Windows 0.2.37 is an independently maintained community preview; upstream has explicitly declined to merge the Windows port, so Windows support will continue on a separate maintenance track.
 
 ## Installation and usage
 
@@ -27,7 +27,7 @@ SDK resolution: SNUG_DOTNET_ROOT, .tools/dotnet, DOTNET_ROOT, standard Program F
     .\build-snug.cmd
     .\package-snug.cmd
 
-The output is artifacts/installer/Snug-Setup-0.2.36-x64.exe. The installer bundles the pinned runtime and signed VDD; the installer itself is not signed. The app-scoped legacy CET compiler bridge preserves the SDK binaries and system security settings. On supported systems, -p:SnugUseLegacyWindowsCETWorkaround=false uses the native SDK compiler.
+The output is artifacts/installer/Snug-Setup-0.2.37-x64.exe. The installer bundles the pinned runtime and signed VDD; the installer itself is not signed. The app-scoped legacy CET compiler bridge preserves the SDK binaries and system security settings. On supported systems, -p:SnugUseLegacyWindowsCETWorkaround=false uses the native SDK compiler.
 
 ## Architecture
 
@@ -37,9 +37,9 @@ The output is artifacts/installer/Snug-Setup-0.2.36-x64.exe. The installer bundl
 
 ## Validation and limitations
 
-253 core tests pass. Local Windows tests cover window placement/restoration, VS Code restart zoom recovery, Chrome tab input and two-axis scrolling, menu drag, force quit, native window capture and crop. Actual installed camera setting and return/restore were verified.
-Menu momentum passed WPF timer tests; full iPhone gesture and native clipboard acceptance are pending. VDD mode steps differ from macOS. Mixed physical-display configurations, some apps' zoom behavior, cross-virtual-desktop handling and protected/GPU window capture need wider testing.
-UU Windows does not currently expose a reliable inbound controller or streamed-display identity; locked logs are compatibility hints only. Manual upgrade only.
+259 core tests pass. Local Windows tests cover window placement/restoration, VS Code restart zoom recovery, Chrome tab input and two-axis scrolling, menu drag, force quit, native window capture and crop. Actual iPhone phone-screen re-entry and UU-disconnect cleanup have also passed.
+Menu momentum passed WPF timer tests. Native clipboard write after mobile screenshot/crop and the complete iPhone gesture matrix remain pending. VDD mode steps differ from macOS. Mixed physical-display configurations, some apps zoom behavior, cross-virtual-desktop handling and protected/GPU window capture need wider testing.
+UU Windows still does not expose a reliable inbound controller or streamed-display identity. The compatibility fallback now requires repeated growth of the current PID-specific streamer log (two writes within 3 seconds) and expires 2 seconds after the last growth; a held file alone is not session evidence. A complete ETW capture inventory remains higher priority.
 
 ## Credits and license
 

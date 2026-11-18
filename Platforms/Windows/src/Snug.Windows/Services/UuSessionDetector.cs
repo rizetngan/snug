@@ -5,7 +5,7 @@ using Snug.Windows.Core;
 namespace Snug.Windows.Services;
 
 /// <summary>
-/// Reads scoped controller-table evidence and legacy log compatibility hints.
+/// Reads scoped controller-table evidence and bounded streamer-log activity hints.
 /// The SYSTEM startup monitor overrides sticky hints only with a fresh,
 /// verified-generation, complete capture inventory.
 /// </summary>
@@ -17,6 +17,7 @@ public sealed class UuSessionDetector : IDisposable
     private readonly object _gate = new();
     private readonly UuControllerReader _controllerReader = new();
     private readonly UuCaptureMonitorReader? _captureMonitor = UuCaptureMonitorReader.FromEnvironment();
+    private readonly UuStreamLogActivityTracker _streamLogActivity = new();
     private UuServerGeneration? _serverGeneration;
     private string _logSummary = "等待 UU 会话日志";
     private DateTimeOffset _lastPoll = DateTimeOffset.MinValue;
@@ -72,26 +73,50 @@ public sealed class UuSessionDetector : IDisposable
 
                 if (pids.Count == 0)
                 {
+                    _streamLogActivity.Reset();
                     signals = new UuSignals(false, null, false);
                     summary = "GameViewerServer 未运行";
+                }
+                else if (serverProcesses.Length != 1 || serverPid is null)
+                {
+                    _streamLogActivity.Reset();
+                    signals = new UuSignals(false, null, null);
+                    summary = "GameViewerServer 多进程 · 推流状态未知";
                 }
                 else
                 {
                     var logDirectory = ResolveLogDirectory(serverProcesses);
-                    var connectionLocked = IsCurrentSessionLogLocked(
-                        logDirectory, "connection_log_controlled_", pids);
-                    var streamerLocked = IsCurrentSessionLogLocked(
-                        logDirectory, "streamer_log_controlled_", pids);
+                    var streamPath = ResolveCurrentStreamerLog(logDirectory, serverPid.Value);
+                    var streamActive = false;
+                    var streamStatus = streamPath is null ? "missing" : "idle";
+                    if (streamPath is not null)
+                    {
+                        try
+                        {
+                            var streamFile = new FileInfo(streamPath);
+                            streamFile.Refresh();
+                            streamActive = _streamLogActivity.Observe(
+                                streamPath, streamFile.Length, DateTimeOffset.UtcNow);
+                            if (streamActive) streamStatus = "growing";
+                        }
+                        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+                        {
+                            _streamLogActivity.Reset();
+                            streamStatus = "unreadable";
+                        }
+                    }
+                    else
+                    {
+                        _streamLogActivity.Reset();
+                    }
 
-                    // These handles may be held for the server's entire lifetime.
-                    // Retain the compatibility hint, not a fabricated capture signal.
                     signals = new UuSignals(
                         OverlayVisible: false,
                         Controller: null,
                         CaptureActive: null,
-                        LogFallback: connectionLocked || streamerLocked);
+                        LogFallback: streamActive);
 
-                    summary = $"Server PID {serverPid} · connection {(connectionLocked ? "locked" : "idle")} · stream {(streamerLocked ? "locked" : "idle")} · 推流屏幕未知";
+                    summary = "Server PID " + serverPid + " · streamer log " + streamStatus;
                 }
             }
             finally
@@ -101,6 +126,7 @@ public sealed class UuSessionDetector : IDisposable
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
+            _streamLogActivity.Reset();
             signals = new UuSignals(false, null, null);
             summary = "UU 会话日志暂不可读：" + error.GetType().Name;
             serverPid = null;
@@ -119,48 +145,13 @@ public sealed class UuSessionDetector : IDisposable
         }
     }
 
-    private static bool IsCurrentSessionLogLocked(
-        string directory,
-        string prefix,
-        IReadOnlySet<uint> serverPids)
+    private static string? ResolveCurrentStreamerLog(string directory, int serverPid)
     {
-        if (!Directory.Exists(directory)) return false;
-
-        foreach (var path in Directory.EnumerateFiles(directory, prefix + "*.slog"))
-        {
-            var name = Path.GetFileNameWithoutExtension(path);
-            var separator = name.LastIndexOf('_');
-            if (separator < 0
-                || !uint.TryParse(name[(separator + 1)..], out var pid)
-                || !serverPids.Contains(pid))
-                continue;
-
-            if (IsFileHeldByServer(path)) return true;
-        }
-
-        return false;
-    }
-
-    private static bool IsFileHeldByServer(string path)
-    {
-        try
-        {
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None);
-            return false;
-        }
-        catch (FileNotFoundException)
-        {
-            return false;
-        }
-        catch (IOException error) when ((error.HResult & 0xFFFF) is 32 or 33)
-        {
-            // Only a sharing/lock violation is evidence; other I/O failures are not sessions.
-            return true;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
+        if (!Directory.Exists(directory)) return null;
+        var pattern = "streamer_log_controlled_*_" + serverPid + ".slog";
+        return Directory.EnumerateFiles(directory, pattern)
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
     }
 
     private static string ResolveLogDirectory(IEnumerable<Process> serverProcesses)
