@@ -1,5 +1,12 @@
 # Windows changelog
 
+## 0.2.40 — input latency candidate
+
+- Move the global mouse hook and inertial scrolling to a dedicated input dispatcher, independent of UI work.
+- Keep native Snug controls and browser chrome on the original event path; avoid process-name lookup for content taps.
+- Coalesce redundant phone-library refreshes. Match upstream's nonactivating phone panel outside search and model selection.
+- Candidate: actual iPhone tap latency, drag, native close, search focus, app switching, keyboard occlusion and disconnect regression still require verification. iOS/UU keyboard viewport fitting is not implemented by this patch.
+
 ## 0.2.39 — capture monitor recovery
 
 - Fix persistent ETW monitor session ownership: use a stable service-specific trace name instead of allocating a fresh random name every launch.

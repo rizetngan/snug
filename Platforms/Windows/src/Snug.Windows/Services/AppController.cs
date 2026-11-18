@@ -53,7 +53,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private bool _endingSession;
     private bool _creatingSession;
     private bool _orphanCleanupStarted;
-    private WindowRestoreRecord? _placed;
+    private volatile WindowRestoreRecord? _placed;
     private PhoneSurfaceWindow? _phoneSurface;
     private PhoneReentryWindow? _phoneReentry;
     private long _phoneEpisode;

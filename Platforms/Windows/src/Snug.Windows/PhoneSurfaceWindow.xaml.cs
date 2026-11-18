@@ -24,6 +24,7 @@ public partial class PhoneSurfaceWindow : Window
     private WindowInfo? _pendingClose;
     private bool _pendingDismissScreen;
     private bool _busy;
+    private bool _refreshQueued;
     private IntPtr _previousForeground;
 
     // Upstream PhoneHomeView.Confirm: one inline confirmation at a time.
@@ -113,7 +114,18 @@ public partial class PhoneSurfaceWindow : Window
     }
 
     private void OnCatalogChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
-        Dispatcher.BeginInvoke(RefreshLists);
+        QueueRefreshLists();
+
+    private void QueueRefreshLists()
+    {
+        if (_refreshQueued) return;
+        _refreshQueued = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            _refreshQueued = false;
+            RefreshLists();
+        }, System.Windows.Threading.DispatcherPriority.Background);
+    }
 
     private void OnControllerChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -128,7 +140,7 @@ public partial class PhoneSurfaceWindow : Window
             or nameof(AppController.PlacedWindowKey)
             or nameof(AppController.PlacedAppName)
             or nameof(AppController.IsAppCatalogLoaded))
-            Dispatcher.BeginInvoke(RefreshLists);
+            QueueRefreshLists();
     }
 
     private static void UpdateCollection<T>(ObservableCollection<T> target, IEnumerable<T> values)
@@ -237,6 +249,31 @@ public partial class PhoneSurfaceWindow : Window
         }
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1,
             TimeSpan.FromMilliseconds(180)));
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        var source = System.Windows.Interop.HwndSource.FromHwnd(
+            new System.Windows.Interop.WindowInteropHelper(this).Handle);
+        source?.AddHook(PhoneMouseActivate);
+    }
+
+    // Upstream PhonePanel accepts first mouse without stealing keyboard
+    // focus. Search and model selection explicitly opt into activation.
+    private IntPtr PhoneMouseActivate(IntPtr hwnd, int message, IntPtr wParam,
+        IntPtr lParam, ref bool handled)
+    {
+        const int WM_MOUSEACTIVATE = 0x0021;
+        const int MA_NOACTIVATE = 3;
+        if (message == WM_MOUSEACTIVATE && !IsPreview &&
+            SearchOverlay.Visibility != Visibility.Visible &&
+            PhoneModelOverlay.Visibility != Visibility.Visible)
+        {
+            handled = true;
+            return new IntPtr(MA_NOACTIVATE);
+        }
+        return IntPtr.Zero;
     }
 
     private void RememberKeyboardFocus()

@@ -13,9 +13,12 @@ public static class BrowserChromeHitTest
 
     public static bool ShouldPassThrough(string processName, WindowBounds bounds, PointD point, double scale)
     {
-        if (!BrowserProcesses.Contains(processName) || bounds.Width <= 0 || bounds.Height <= 0)
-            return false;
+        return BrowserProcesses.Contains(processName) && IsHeader(bounds, point, scale);
+    }
 
+    public static bool IsHeader(WindowBounds bounds, PointD point, double scale)
+    {
+        if (bounds.Width <= 0 || bounds.Height <= 0) return false;
         var headerHeight = Math.Min(bounds.Height, Math.Clamp(86 * Math.Max(1, scale), 86, 148));
         return point.X >= bounds.X && point.X < bounds.X + bounds.Width
             && point.Y >= bounds.Y && point.Y < bounds.Y + headerHeight;

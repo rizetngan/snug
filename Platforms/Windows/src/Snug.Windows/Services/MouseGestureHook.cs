@@ -11,11 +11,16 @@ public sealed class MouseGestureHook : IDisposable
 {
     private static readonly UIntPtr InjectionMarker = new(0x534E5547);
     private readonly NativeMethods.LowLevelMouseProc _callback;
-    private readonly DispatcherTimer _coastTimer;
-    private readonly TouchTranslator _translator = new();
+    private readonly Dispatcher _uiDispatcher;
+    // Install the hook on its own message pump, as upstream does.
+    private Dispatcher? _inputDispatcher;
+    private Thread? _inputThread;
+    private DispatcherTimer? _coastTimer;
+    private volatile bool _running;
+    private sealed record GestureRegion(WindowBounds Bounds, double Scale);
+    private volatile GestureRegion? _region;
+    private TouchTranslator _translator = new();
     private IntPtr _hook;
-    private WindowBounds? _region;
-    private double _regionScale = 1;
     private PointD _heldPress;
     private bool _passthroughBrowserChrome;
     private bool _disposed;
@@ -26,19 +31,18 @@ public sealed class MouseGestureHook : IDisposable
     public MouseGestureHook()
     {
         _callback = OnMouse;
-        _coastTimer = new DispatcherTimer(DispatcherPriority.Input)
-        {
-            Interval = TimeSpan.FromMilliseconds(1000.0 / 60)
-        };
-        _coastTimer.Tick += OnCoastTick;
+        _uiDispatcher = Dispatcher.CurrentDispatcher;
     }
 
-    public bool IsRunning => _hook != IntPtr.Zero;
+    public bool IsRunning => _running;
 
     public void SetRegion(DisplayInfo? display, double scale = 1)
     {
-        _region = null;
-        if (display is null || !PhoneDisplayModeSwitcher.IsSnugDisplay(display)) return;
+        if (display is null || !PhoneDisplayModeSwitcher.IsSnugDisplay(display))
+        {
+            _region = null;
+            return;
+        }
         var mode = new NativeMethods.DEVMODE
         {
             Size = checked((ushort)Marshal.SizeOf<NativeMethods.DEVMODE>()),
@@ -48,46 +52,96 @@ public sealed class MouseGestureHook : IDisposable
         // EnumDisplaySettings returns raw physical dimensions and position.
         // Never compare hook pixels with the DPI-virtualized Screen.Bounds.
         if (!NativeMethods.EnumDisplaySettings(display.DeviceName, -1, ref mode) ||
-            mode.PelsWidth == 0 || mode.PelsHeight == 0) return;
-        _region = new WindowBounds(mode.PositionX, mode.PositionY,
-            checked((int)mode.PelsWidth), checked((int)mode.PelsHeight));
-        _regionScale = Math.Max(1, scale) *
-            Math.Max(1, (double)mode.PelsWidth / Math.Max(1, display.Bounds.Width));
+            mode.PelsWidth == 0 || mode.PelsHeight == 0)
+        {
+            _region = null;
+            return;
+        }
+        _region = new GestureRegion(
+            new WindowBounds(mode.PositionX, mode.PositionY,
+                checked((int)mode.PelsWidth), checked((int)mode.PelsHeight)),
+            Math.Max(1, scale) *
+                Math.Max(1, (double)mode.PelsWidth / Math.Max(1, display.Bounds.Width)));
+    }
+
+    private Dispatcher InputDispatcher()
+    {
+        if (_inputDispatcher is { } existing) return existing;
+        var ready = new TaskCompletionSource<Dispatcher>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        _inputThread = new Thread(() =>
+        {
+            try
+            {
+                var dispatcher = Dispatcher.CurrentDispatcher;
+                _coastTimer = new DispatcherTimer(DispatcherPriority.Input, dispatcher)
+                {
+                    Interval = TimeSpan.FromMilliseconds(1000.0 / 60)
+                };
+                _coastTimer.Tick += OnCoastTick;
+                ready.TrySetResult(dispatcher);
+                Dispatcher.Run();
+            }
+            catch (Exception error)
+            {
+                if (!ready.TrySetException(error)) throw;
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "Snug.Windows.Input",
+            Priority = ThreadPriority.AboveNormal
+        };
+        _inputThread.SetApartmentState(ApartmentState.STA);
+        _inputThread.Start();
+        return _inputDispatcher = ready.Task.GetAwaiter().GetResult();
     }
 
     public bool Start()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(MouseGestureHook));
         if (IsRunning) return true;
-        var module = Process.GetCurrentProcess().MainModule?.ModuleName;
-        _hook = NativeMethods.SetWindowsHookEx(
-            NativeMethods.WH_MOUSE_LL,
-            _callback,
-            NativeMethods.GetModuleHandle(module),
-            0);
-        return IsRunning;
+        return InputDispatcher().Invoke(() =>
+        {
+            if (_running) return true;
+            using var process = Process.GetCurrentProcess();
+            var module = process.MainModule?.ModuleName;
+            _hook = NativeMethods.SetWindowsHookEx(
+                NativeMethods.WH_MOUSE_LL, _callback,
+                NativeMethods.GetModuleHandle(module), 0);
+            _running = _hook != IntPtr.Zero;
+            return _running;
+        }, DispatcherPriority.Send);
     }
 
     public void Stop()
     {
-        _coastTimer.Stop();
+        if (_inputDispatcher is not { } dispatcher || !_running) return;
+        dispatcher.Invoke(StopOnInputThread, DispatcherPriority.Send);
+    }
+
+    private void StopOnInputThread()
+    {
+        _coastTimer?.Stop();
         _passthroughBrowserChrome = false;
         _closeTap.Reset();
-        if (_hook == IntPtr.Zero) return;
-        NativeMethods.UnhookWindowsHookEx(_hook);
+        _translator = new TouchTranslator();
+        _heldPress = default;
+        if (_hook != IntPtr.Zero) NativeMethods.UnhookWindowsHookEx(_hook);
         _hook = IntPtr.Zero;
+        _running = false;
     }
 
     private void OnCoastTick(object? sender, EventArgs e)
     {
         using var dpi = new PhysicalDpiScope();
         if (dpi.IsValid && _translator.MomentumFrame() is { } step) PostScroll(step);
-        if (!_translator.IsCoasting) _coastTimer.Stop();
+        if (!_translator.IsCoasting) _coastTimer?.Stop();
     }
 
     private IntPtr OnMouse(int code, IntPtr wParam, IntPtr lParam)
     {
-        if (code < 0 || _region is null) return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
+        if (code < 0 || _region is not { } snapshot) return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
         using var dpi = new PhysicalDpiScope();
         if (!dpi.IsValid) return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
 
@@ -107,7 +161,7 @@ public sealed class MouseGestureHook : IDisposable
         if (kind is null) return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
 
         var point = new PointD(info.Point.X, info.Point.Y);
-        var region = _region.Value;
+        var region = snapshot.Bounds;
         var inside = point.X >= region.X && point.X < region.X + region.Width
             && point.Y >= region.Y && point.Y < region.Y + region.Height;
         // Native caption close is distinct from browser tabs, including tab
@@ -122,7 +176,7 @@ public sealed class MouseGestureHook : IDisposable
                 _passthroughBrowserChrome = false;
                 var stop = _translator.Handle(new TouchInput(kind.Value, point, seconds), false);
                 foreach (var command in stop.Commands) Execute(command, kind.Value, point);
-                _closeTap.Begin(close, seconds, _regionScale);
+                _closeTap.Begin(close, seconds, snapshot.Scale);
                 return new IntPtr(1);
             }
         }
@@ -134,7 +188,7 @@ public sealed class MouseGestureHook : IDisposable
                 var current = PlacedWindowKey?.Invoke() is { } key
                     ? NativeCloseHitTest.Capture(key, point) : null;
                 if (_closeTap.Release(current, point, seconds) is { } tap)
-                    _coastTimer.Dispatcher.BeginInvoke(new Action(() => NativeCloseTapped?.Invoke(tap)),
+                    _uiDispatcher.BeginInvoke(new Action(() => NativeCloseTapped?.Invoke(tap)),
                         DispatcherPriority.Input);
             }
             // Never replay a stale/dragged/long-held close tap onto another app.
@@ -144,26 +198,33 @@ public sealed class MouseGestureHook : IDisposable
         // Native browser tabs and address controls must receive the original
         // UU press/release. Replay inside WH_MOUSE_LL loses Chrome tab clicks.
         if (kind == PointerKind.Press)
-            _passthroughBrowserChrome = inside && IsNativeBrowserChrome(point);
+        {
+            _passthroughBrowserChrome = inside && IsNativeControl(point, snapshot.Scale);
+            if (_passthroughBrowserChrome)
+            {
+                var stop = _translator.Handle(new TouchInput(kind.Value, point, seconds), false);
+                foreach (var command in stop.Commands) Execute(command, kind.Value, point);
+            }
+        }
         if (_passthroughBrowserChrome)
         {
             if (kind == PointerKind.Release) _passthroughBrowserChrome = false;
             return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
         }
-        var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside, _regionScale);
+        var response = _translator.Handle(new TouchInput(kind.Value, point, seconds), inside, snapshot.Scale);
 
         if (kind == PointerKind.Press && !response.PassOriginal) _heldPress = point;
         foreach (var command in response.Commands) Execute(command, kind.Value, point);
 
         if (kind == PointerKind.Release) _heldPress = default;
-        if (_translator.IsCoasting && !_coastTimer.IsEnabled) _coastTimer.Start();
+        if (_translator.IsCoasting && _coastTimer is { IsEnabled: false } timer) timer.Start();
 
         return response.PassOriginal
             ? NativeMethods.CallNextHookEx(_hook, code, wParam, lParam)
             : new IntPtr(1);
     }
 
-    private bool IsNativeBrowserChrome(PointD point)
+    private static bool IsNativeControl(PointD point, double scale)
     {
         var hit = NativeMethods.WindowFromPoint(new NativeMethods.POINT
         {
@@ -175,14 +236,20 @@ public sealed class MouseGestureHook : IDisposable
             return false;
 
         NativeMethods.GetWindowThreadProcessId(window, out var processId);
-        if (processId == 0 || processId == Environment.ProcessId) return false;
+        if (processId == 0) return false;
+        // Snug's own controls already handle their native mouse input.
+        if (processId == Environment.ProcessId) return true;
+        // Skip process-name lookup on ordinary content taps.
+        if (!BrowserChromeHitTest.IsHeader(
+            new WindowBounds(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top),
+            point, scale)) return false;
         try
         {
             using var process = Process.GetProcessById((int)processId);
             return BrowserChromeHitTest.ShouldPassThrough(
                 process.ProcessName,
                 new WindowBounds(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top),
-                point, _regionScale);
+                point, scale);
         }
         catch (ArgumentException) { return false; }
         catch (InvalidOperationException) { return false; }
@@ -236,7 +303,16 @@ public sealed class MouseGestureHook : IDisposable
     {
         if (_disposed) return;
         Stop();
-        _coastTimer.Tick -= OnCoastTick;
+        if (_inputDispatcher is { } dispatcher)
+        {
+            dispatcher.Invoke(() =>
+            {
+                if (_coastTimer is { } timer) timer.Tick -= OnCoastTick;
+                _coastTimer = null;
+                dispatcher.BeginInvokeShutdown(DispatcherPriority.Send);
+            }, DispatcherPriority.Send);
+            _inputThread?.Join(TimeSpan.FromSeconds(2));
+        }
         _disposed = true;
     }
 }
