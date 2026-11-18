@@ -17,11 +17,10 @@ Built for UU Remote · Dedicated portrait display · Native gestures · App Libr
 </div>
 
 <p align="center">
-<img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows phone screen: running applications and windows">
-<img src="Assets/WindowsMedia/phone-tour.gif" width="30%" alt="Windows UI walkthrough: running apps, all apps, search and phone models">
-<img src="Assets/WindowsMedia/phone-models.png" width="30%" alt="Search and select a phone model">
-<br><sub>Running · UI walkthrough · Phone models</sub>
-<br><sub>Windows virtual display and local preview screenshots. Center: screenshot slideshow; private titles are redacted.</sub>
+<img src="Assets/WindowsMedia/phone-running.png" width="36%" alt="App Library on the Windows phone display">
+<img src="Assets/WindowsMedia/phone-browser-fit.png" width="36%" alt="Chrome fitted to the Snug phone display with the return bar">
+<br><sub>App Library · Chrome window fitted to the phone display</sub>
+<br><sub>Actual Windows virtual-display test captures; private titles and local paths redacted.</sub>
 </p>
 
 Snug for Windows is an independent community port of [Snug](https://github.com/zephyr4123/snug), maintained by [rizetngan](https://github.com/rizetngan). Based on Snug 2.5.0, it uses C# / .NET 10 / WPF. For macOS, visit the upstream project.
@@ -42,12 +41,6 @@ Ordinary remote desktop software scales the entire Windows desktop into a phone 
 - **Text and layout**: adjust text size in supported apps and accommodate minimum window widths.
 - **Screenshots and cropping**: enable the optional screenshot control to copy window images to the Windows clipboard and crop them.
 
-<p align="center">
-<img src="Assets/WindowsMedia/desktop-vs-portrait.png" width="76%" alt="The same sample webpage in scaled desktop and portrait layouts">
-<br><sub>Left: scaled whole desktop · Right: portrait app window</sub>
-<br><sub>Illustrative comparison using browser-rendered sample content, not a live UU Remote capture.</sub>
-</p>
-
 ### Touch gestures
 
 | Gesture | Snug phone screen |
@@ -66,8 +59,8 @@ View running apps, search windows, launch installed apps and switch between wind
 <p align="center">
 <img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Running applications and windows">
 <img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="Installed app icon grid">
-<img src="Assets/WindowsMedia/phone-search.png" width="30%" alt="Search Chrome apps and windows">
-<br><sub>Running · All · Search apps and windows (private titles redacted)</sub>
+<img src="Assets/WindowsMedia/phone-search.png" width="30%" alt="Search for Notepad">
+<br><sub>Running · All · Search for Notepad (virtual-display capture and 0.2.38 local previews)</sub>
 </p>
 
 | Action | How |
@@ -83,8 +76,18 @@ View running apps, search windows, launch installed apps and switch between wind
 Snug sizes its virtual display to match the selected phone model. The catalog can be synchronized with upstream. Select a model from phone-screen controls or Windows settings; unlisted devices can use custom dimensions.
 
 <p align="center">
-<img src="Assets/WindowsMedia/phone-models.png" width="29%" alt="iPhone 13 series model picker">
+<img src="Assets/WindowsMedia/phone-models.png" width="29%" alt="Current model, custom resolution and device list">
 <br><sub>Search for a model and view its resolution</sub>
+</p>
+
+## Windows settings
+
+Configure the phone model, gestures and optional screenshots on Windows. The About dialog displays the version, independent repository and upstream credits.
+
+<p align="center">
+<img src="Assets/WindowsMedia/windows-settings.png" width="44%" alt="Snug for Windows 0.2.38 settings">
+<img src="Assets/WindowsMedia/windows-about.png" width="44%" alt="Snug for Windows 0.2.38 About dialog">
+<br><sub>Settings · About (actual 0.2.38 application UI)</sub>
 </p>
 
 ## Usage
