@@ -18,10 +18,10 @@ Built for UU Remote · Dedicated portrait display · Native gestures · App Libr
 
 <p align="center">
 <img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows phone screen: running applications and windows">
-<img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="Windows App Library: installed applications">
+<img src="Assets/WindowsMedia/phone-tour.gif" width="30%" alt="Windows UI walkthrough: running apps, all apps, search and phone models">
 <img src="Assets/WindowsMedia/phone-models.png" width="30%" alt="Search and select a phone model">
-<br><sub>Running · All apps · Phone models</sub>
-<br><sub>Windows virtual display and local preview screenshots; private window titles are redacted.</sub>
+<br><sub>Running · UI walkthrough · Phone models</sub>
+<br><sub>Windows virtual display and local preview screenshots. Center: screenshot slideshow; private titles are redacted.</sub>
 </p>
 
 Snug for Windows is an independent community port of [Snug](https://github.com/zephyr4123/snug), maintained by [rizetngan](https://github.com/rizetngan). Based on Snug 2.5.0, it uses C# / .NET 10 / WPF. For macOS, visit the upstream project.
@@ -41,6 +41,12 @@ Ordinary remote desktop software scales the entire Windows desktop into a phone 
 - **Window fitting**: fit the selected window to the phone display, restoring the previous managed window when switching.
 - **Text and layout**: adjust text size in supported apps and accommodate minimum window widths.
 - **Screenshots and cropping**: enable the optional screenshot control to copy window images to the Windows clipboard and crop them.
+
+<p align="center">
+<img src="Assets/WindowsMedia/desktop-vs-portrait.png" width="76%" alt="The same sample webpage in scaled desktop and portrait layouts">
+<br><sub>Left: scaled whole desktop · Right: portrait app window</sub>
+<br><sub>Illustrative comparison using browser-rendered sample content, not a live UU Remote capture.</sub>
+</p>
 
 ### Touch gestures
 

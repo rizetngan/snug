@@ -9,5 +9,7 @@ These images are Windows project captures from November 16–17, 2026, not macOS
 | phone-search.png | Windows local phone UI preview (phone-parity-search.png), November 16; private window titles covered with opaque gray bars. |
 | phone-models.png | Windows local phone UI preview (phone-parity-model.png), November 16. |
 | phone-reentry.png | Windows re-entry control capture, November 17. |
+| desktop-vs-portrait.png | Illustrative layout comparison, produced November 18 from a self-contained sample webpage rendered by Chrome at 1440 × 900 and 540 × 1170. The wide capture is scaled into a phone frame; the portrait capture uses the same page's responsive layout. Not an actual UU or Snug session capture. |
+| phone-tour.gif | Four-frame slideshow of the reviewed running, all-apps, search and phone-model screenshots above; 2.1 seconds per frame. Not a screen recording or a real-device acceptance test. |
 
 Original source captures are kept outside the public repo. Only the selected reviewed images are published. The screenshots may differ slightly from the current build. See the [acceptance report](../../Platforms/Windows/ACCEPTANCE_20261118.md) for validation of the 0.2.38 acceptance baseline.

@@ -18,10 +18,10 @@
 
 <p align="center">
 <img src="Assets/WindowsMedia/phone-running.png" width="30%" alt="Windows 手机屏：运行中的应用与窗口">
-<img src="Assets/WindowsMedia/phone-all-apps.png" width="30%" alt="Windows App 资源库：全部应用">
+<img src="Assets/WindowsMedia/phone-tour.gif" width="30%" alt="Windows 界面导览：运行中、全部应用、搜索和机型选择">
 <img src="Assets/WindowsMedia/phone-models.png" width="30%" alt="搜索并选择手机型号">
-<br><sub>运行中 · 全部应用 · 手机型号</sub>
-<br><sub>Windows 实际虚拟屏与本地预览截图，部分窗口标题已隐藏。</sub>
+<br><sub>运行中 · 界面导览 · 手机型号</sub>
+<br><sub>Windows 实际虚拟屏与本地预览截图；中央为截图轮播，私人窗口标题已隐藏。</sub>
 </p>
 
 Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 Windows 移植项目，由 [rizetngan](https://github.com/rizetngan) 维护。基于 Snug 2.5.0，使用 C# / .NET 10 / WPF。macOS 用户请前往上游原项目。
@@ -41,6 +41,12 @@ Snug for Windows 是 [Snug](https://github.com/zephyr4123/snug) 的独立社区 
 - **窗口铺满**：选择应用窗口后，按手机屏幕尺寸调整窗口；切换时恢复原来的受管理窗口。
 - **字号与布局**：兼容的应用可调整字号；支持应用的最小宽度适配。
 - **截图与裁剪**：在设置中开启截图后，可以将窗口画面复制到 Windows 剪贴板，再按需裁剪。
+
+<p align="center">
+<img src="Assets/WindowsMedia/desktop-vs-portrait.png" width="76%" alt="同一演示网页的横屏缩放和竖屏布局对比">
+<br><sub>左：整块桌面缩放至手机 · 右：应用窗口按竖屏布局展示</sub>
+<br><sub>同一演示网页的布局示意，使用浏览器渲染，并非 UU 实机截图。</sub>
+</p>
 
 ### 手机触控
 
