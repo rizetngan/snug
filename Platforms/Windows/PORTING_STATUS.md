@@ -2,7 +2,7 @@
 
 Current candidate: 0.2.37
 Upstream baseline: Snug 2.5.0
-Development branch: feat/windows-platform-support (44 local commits ahead of upstream origin/main)
+Development branch: feat/windows-platform-support (local Windows port branch; changes remain unpushed)
 Release model: independently maintained Windows platform track; upstream has declined to merge or maintain the Windows port.
 
 ## Product scope
