@@ -36,7 +36,7 @@ public sealed class UuMultiControllerTests
     }
 
     [Fact]
-    public void RecentlyDepartedPhoneStaysWithinWindowsReconnectWindow()
+    public void RecentlyDepartedPhoneRetainsTenSecondGraceWhileDesktopRemains()
     {
         var tracker = new UuConnectionTracker();
         tracker.Update(Local(Desktop, Phone), Start);

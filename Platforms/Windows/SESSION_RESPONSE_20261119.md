@@ -11,3 +11,12 @@ Two actual 0.2.42 episodes: Connected-to-ready 6306/5989 ms; start-to-ready 4289
 - No changes to input replay, driver payload or 0.2.42 persistent-display/restore UI.
 - Exact new boundary tests; original acceptance test updated to new intended 10s timing. Initial run had one failure due to old 15s expectation; corrected run 285/285 passing, app build zero errors/warnings and package successful.
 - Installer 58986888 bytes, SHA256 F2E9098F1C3BB6B7A2E5D4AE6506F63E6FCDAC108349D975361129F7985D288E. Actual candidate timings and reconnect safety require mobile acceptance; no public release.
+
+
+## 0.2.43 installed acceptance
+User confirmed stable. One actual episode: Connected 03:20:33.124Z, ready 03:20:37.946Z (4822ms); start-to-ready 2778ms; cold driver request-to-ready 1110ms. Interrupted 03:20:49.457Z, Ended 03:20:59.534Z (10077ms), display-stop 03:21:01.423Z (11966ms). No unexpected Interrupted/Ended before the final disconnect. This sample does not establish the minimum safe reconnect window.
+
+## 0.2.44 candidate
+- Full-session ReconnectWindow 10s -> 6s. DepartedControllerGrace stays 10s while another controller remains. No other timing or driver change.
+- 287/287 tests pass, including exact boundary, repeated interrupted unknown-controller sessions, and late reconnect. Build/package succeeded.
+- Package 58983831 bytes, SHA256 52D4A0685A71DAF1C9B6CE8D3D54CA65836A1E63C94904732D8745A881F43619. Real-phone validation pending. 0.2.43 package remains the rollback baseline.

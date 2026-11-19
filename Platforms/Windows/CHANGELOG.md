@@ -1,10 +1,16 @@
 # Windows changelog
 
+## 0.2.44 — six-second full-session reconnect trial (candidate)
+
+- Reduce the full-session interruption grace from 10s to 6s. Keep the existing 10s grace for a departed controller while another controller remains connected.
+- Retain the 500ms polling, 1.5s debounce, 5s topology quiet window, 2s unknown-controller grace and 3s capture rebuild protection. No further change to driver readiness or input processing.
+- Real-phone short-interruption and cleanup acceptance pending.
+
 ## 0.2.43 — shorter session response (candidate)
 
 - Reduce the Windows reconnect grace after interruption from 15s to 10s. Keep the 1.5s disconnect debounce, 5s self-induced topology guard, 2s unknown-controller grace, and capture rebuild protection.
 - Skip the initial cold-driver ping only when no Snug monitor exists. Keep SYSTEM task ownership checks, no-duplicates behavior, post-start ping and display geometry readiness checks.
-- Candidate timing and real-phone interruption/cleanup acceptance pending.
+- Maintainer confirmed stable mobile behavior; one real episode recorded 4.82s Connected-to-ready and 11.97s Interrupted-to-display-stop, no unintended interruption before disconnect. Broader reconnect matrix remains pending.
 
 ## 0.2.42 — retain the phone display for the UU session (candidate)
 

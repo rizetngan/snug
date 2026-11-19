@@ -36,8 +36,10 @@ public sealed class UuConnectionTracker
 {
     public static readonly TimeSpan DisconnectDebounce = TimeSpan.FromSeconds(1.5);
     public static readonly TimeSpan QuietWindow = TimeSpan.FromSeconds(5);
-    // Windows candidate: retain a 10s reconnect window after interruption.
-    public static readonly TimeSpan ReconnectWindow = TimeSpan.FromSeconds(10);
+    // Full session interruption: 6s trial. Keep the accepted longer grace
+    // for a departed controller while another controller is still present.
+    public static readonly TimeSpan ReconnectWindow = TimeSpan.FromSeconds(6);
+    public static readonly TimeSpan DepartedControllerGrace = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan UnknownControllerGrace = TimeSpan.FromSeconds(2);
 
     private DateTimeOffset? _lastPresentAt;
@@ -141,7 +143,7 @@ public sealed class UuConnectionTracker
         var names = next.Select(c => c.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var previous in _controllers)
             if (!names.Contains(previous.Name))
-                _departed[previous.Name] = (previous, now + ReconnectWindow);
+                _departed[previous.Name] = (previous, now + DepartedControllerGrace);
         foreach (var controller in next) _departed.Remove(controller.Name);
         _controllers = next;
     }

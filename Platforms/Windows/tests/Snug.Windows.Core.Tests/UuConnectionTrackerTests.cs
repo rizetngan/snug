@@ -50,7 +50,7 @@ public sealed class UuConnectionTrackerTests
 
 
     [Fact]
-    public void TenSecondReconnectBoundaryRetainsPhoneUntilExpiry()
+    public void SixSecondReconnectBoundaryRetainsPhoneUntilExpiry()
     {
         var tracker = new UuConnectionTracker();
         var t = DateTimeOffset.UnixEpoch;
@@ -60,11 +60,11 @@ public sealed class UuConnectionTrackerTests
         Assert.Empty(tracker.Update(absent, t.AddSeconds(1.5)));
         Assert.Equal(ConnectionTransitionKind.Interrupted,
             Assert.Single(tracker.Update(absent, t.AddSeconds(2))).Kind);
-        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(12)));
-        Assert.Empty(tracker.Update(absent, t.AddSeconds(12)));
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(8)));
+        Assert.Empty(tracker.Update(absent, t.AddSeconds(8)));
         Assert.Equal(ConnectionTransitionKind.Ended,
-            Assert.Single(tracker.Update(absent, t.AddSeconds(12.5))).Kind);
-        Assert.False(tracker.WantsPhoneScreen(t.AddSeconds(12.5)));
+            Assert.Single(tracker.Update(absent, t.AddSeconds(8.5))).Kind);
+        Assert.False(tracker.WantsPhoneScreen(t.AddSeconds(8.5)));
     }
 
     [Fact]
@@ -77,8 +77,45 @@ public sealed class UuConnectionTrackerTests
         tracker.Update(active, t);
         tracker.Update(absent, t.AddSeconds(2));
         Assert.Equal(ConnectionTransitionKind.Resumed,
-            Assert.Single(tracker.Update(active, t.AddSeconds(11.9))).Kind);
-        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(11.9)));
+            Assert.Single(tracker.Update(active, t.AddSeconds(7.9))).Kind);
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(7.9)));
+    }
+
+    [Fact]
+    public void UnknownControllerWithCaptureRebuildAndRepeatedSwitchesKeepsPhone()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var active = new UuSignals(false, null, true);
+        var absent = new UuSignals(false, null, null);
+        tracker.Update(active, t);
+        for (var i = 0; i < 5; i++)
+        {
+            var start = t.AddSeconds(3 + 6 * i);
+            tracker.Update(active, start);
+            Assert.Empty(tracker.Update(absent, start.AddSeconds(1)));
+            Assert.Equal(ConnectionTransitionKind.Interrupted,
+                Assert.Single(tracker.Update(absent, start.AddSeconds(2))).Kind);
+            Assert.True(tracker.WantsPhoneScreen(start.AddSeconds(5)));
+            Assert.Equal(ConnectionTransitionKind.Resumed,
+                Assert.Single(tracker.Update(active, start.AddSeconds(5))).Kind);
+            Assert.True(tracker.WantsPhoneScreen(start.AddSeconds(5)));
+        }
+    }
+
+    [Fact]
+    public void ReconnectAfterSixSecondBoundaryStartsNewEpisode()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var active = new UuSignals(false, null, true);
+        tracker.Update(active, t);
+        tracker.Update(new(false, null, null), t.AddSeconds(2));
+        var resumed = tracker.Update(active, t.AddSeconds(8.5));
+        Assert.Equal(new[] { ConnectionTransitionKind.Ended, ConnectionTransitionKind.Connected },
+            resumed.Select(x => x.Kind).ToArray());
+        Assert.False(tracker.WantsPhoneScreen(t.AddSeconds(8.5)));
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(10.5)));
     }
 
     [Fact]
