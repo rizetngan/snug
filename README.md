@@ -117,9 +117,7 @@ Snug 根据手机型号调整虚拟显示比例，机型库也可与上游同步
 2. 在设置中选择手机型号并开启手机屏。
 3. 手机通过 UU 连接电脑，在屏幕列表选择 Snug Phone，使用屏幕触控模式。
 4. 在 App 资源库打开窗口，轻点底部返回条切回资源库。
-5. 退出手机屏后，可从主屏右下角「进入手机屏」重新创建，再通过 UU 切换显示器。结束远程后，Snug 恢复受管理窗口并释放虚拟屏。
-
-<p align="center"><img src="Assets/WindowsMedia/phone-reentry.png" width="220" alt="主显示器右下角的进入手机屏按钮"><br><sub>Windows 特色：同一有效 UU 会话内重新进入手机屏</sub></p>
+5. **0.2.42 起：** 同一次 UU 远程会话内，直接用 UU 切换主屏和 Snug Phone，手机屏保持可用。如需归还应用窗口，在 App 资源库使用「还原窗口」。断开远程或关闭手机屏功能后，Snug 恢复受管理窗口并释放虚拟屏。
 
 [详细安装与使用文档](Platforms/Windows/README.md) · [截图来源](Assets/WindowsMedia/README.md)
 

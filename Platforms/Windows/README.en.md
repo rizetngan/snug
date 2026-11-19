@@ -44,4 +44,4 @@ The Windows UU detector combines visible server overlays, the local controlled-d
 ## Credits and license
 
 Original Snug author: zephyr4123. Project predecessor: UUyc-companion by AoyamaShou. Original copyright, history and community acknowledgments are preserved. Windows support additionally thanks Virtual Display Driver and NefCon. See the [MIT license](../../LICENSE) and [third-party notices](installer/THIRD_PARTY_NOTICES.md). Snug is not an official UU Remote product.
-After dismissing the phone screen, a temporary Re-enter Phone Screen button appears at the bottom-right of the primary desktop while the same phone episode is connected. Click to recreate the phone display, then select it in UU. It hides when the episode ends or Phone Screen is disabled.
+Starting in 0.2.42, switch between the primary display and Snug Phone directly in UU without destroying or recreating the virtual display. Restore Window in the App Library returns the managed window while keeping the phone display available. Ending the episode or disabling Phone Screen restores windows and releases the display.

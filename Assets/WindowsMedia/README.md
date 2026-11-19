@@ -16,7 +16,7 @@ The README prioritizes actual Windows application and virtual-display captures, 
 | phone-models.png | Actual 0.2.38 WPF phone-model preview, November 18; current device, custom size and device list. |
 | windows-settings.png | Installed Snug 0.2.39 settings window, November 18. |
 | windows-about.png | Installed Snug 0.2.39 About dialog, November 18. |
-| phone-reentry.png | Windows re-entry control capture, November 17. |
+| phone-reentry.png | Historical Windows re-entry control capture, November 17 (0.2.41 and earlier). |
 | desktop-vs-portrait.png | Previous illustrative comparison, removed from the main README. Not live UU capture. |
 | phone-tour.gif | Previous four-frame screenshot slideshow, removed from the main README. Not live screen recording. |
 

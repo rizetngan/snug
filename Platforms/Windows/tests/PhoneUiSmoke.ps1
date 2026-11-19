@@ -180,13 +180,12 @@ try {
         Press '取消退出'
     }
 
-    Press '退出手机屏'
-    [void](Require-Control '退出手机屏？')
-    if (-not (Find-VisibleAction '确认退出手机屏')) {
-        throw 'Upstream inline phone-dismissal confirmation is missing.'
+    if (Find-VisibleAction '退出手机屏') { throw 'Obsolete episode-exit control is still visible.' }
+    $namespaces.AddNamespace('x', 'http://schemas.microsoft.com/winfx/2006/xaml')
+    if ($phoneMarkup.SelectSingleNode('//*[@x:Name="DismissPhoneButton" or @x:Name="DismissPhoneBanner"]', $namespaces)) {
+        throw 'Obsolete phone dismissal UI still exists.'
     }
-    Capture-Phone 'dismiss'
-    Press '取消退出手机屏'
+    Write-Output 'PHONE_NO_EXIT_REENTRY_UI_PASS'
 
     Press '手机型号'
     $picker = Require-Control '搜索手机型号'

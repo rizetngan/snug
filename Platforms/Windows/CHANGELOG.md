@@ -1,5 +1,12 @@
 # Windows changelog
 
+## 0.2.42 — retain the phone display for the UU session (candidate)
+
+- Keep the existing phone display and app state when switching between monitors in UU. Remove the episode-dismiss/re-entry flow and primary-desktop floating button.
+- Use the existing App Library restore-window action to return a managed window without destroying or changing the phone display; keep the same catalog available.
+- Preserve existing UU lifetime detection, disable/quit/disconnect cleanup, and 0.2.41 input replay implementation.
+- Actual mobile same-display switch and window restore acceptance pending.
+
 ## 0.2.41 — deferred mouse replay
 
 - Fix a measured ~1-second low-level mouse-hook stall when replaying taps.

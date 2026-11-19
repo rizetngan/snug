@@ -117,9 +117,7 @@ Configure the phone model, gestures and optional screenshots on Windows. The Abo
 2. Select your phone model and enable the phone display in Settings.
 3. Connect through UU Remote, select Snug Phone from the display list and use screen-touch mode.
 4. Choose a window from the App Library; tap the bottom return bar to return to the library.
-5. After exiting the phone display, use the re-entry control on the primary display to recreate it, then switch displays in UU. On disconnect, Snug restores managed windows and releases the virtual display.
-
-<p align="center"><img src="Assets/WindowsMedia/phone-reentry.png" width="220" alt="Re-enter phone screen button on the primary display"><br><sub>Windows: re-enter the phone display in the same active UU session</sub></p>
+5. **Starting in 0.2.42:** switch between the primary display and Snug Phone directly in UU; the phone display stays available during the session. Use Restore Window in the App Library if you want to return a managed window. Disconnecting or disabling Phone Screen restores managed windows and releases the virtual display.
 
 [Full Windows guide](Platforms/Windows/README.en.md) · [Screenshot provenance](Assets/WindowsMedia/README.md)
 

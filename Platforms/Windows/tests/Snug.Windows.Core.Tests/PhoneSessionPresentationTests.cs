@@ -4,107 +4,79 @@ namespace Snug.Windows.Core.Tests;
 
 public sealed class PhoneSessionPresentationTests
 {
-    [Fact]
-    public void StartsUndismissedAndRespectsPhoneSessionIntent()
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, false)]
+    public void DisplayLifetimeDependsOnlyOnUuIntentAndSetting(bool wants, bool enabled, bool expected)
     {
-        var state = new PhoneSessionPresentation();
-        Assert.True(state.ShouldPresent(true));
-        Assert.False(state.ShouldPresent(false));
+        Assert.Equal(expected, PhoneSessionPresentation.ShouldKeepDisplay(wants, enabled));
     }
 
     [Fact]
-    public void DismissalRemainsForTheSameRemoteEpisode()
+    public void RepeatedMonitorSwitchesDoNotEndPhoneDisplay()
     {
-        var state = new PhoneSessionPresentation();
-        state.DismissForEpisode();
-        foreach (var transition in new[]
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var phone = new ControllerInfo("test", ControllerKind.Phone);
+        for (var i = 0; i < 10; i++)
         {
-            ConnectionTransitionKind.Interrupted,
-            ConnectionTransitionKind.Resumed,
-            ConnectionTransitionKind.ControllerChanged,
-            ConnectionTransitionKind.Connected
-        })
-        {
-            state.OnTransition(transition);
-            Assert.True(state.DismissedInEpisode);
-            Assert.False(state.ShouldPresent(true));
+            // UU's capture can switch targets while the same phone controller stays connected.
+            tracker.Update(new UuSignals(false, phone, i % 2 == 0), t.AddSeconds(i));
+            Assert.True(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t.AddSeconds(i)), true));
         }
     }
 
     [Fact]
-    public void NextEpisodeRestoresThePhoneScreen()
-    {
-        var state = new PhoneSessionPresentation();
-        state.DismissForEpisode();
-        state.OnTransition(ConnectionTransitionKind.Ended);
-        Assert.False(state.DismissedInEpisode);
-        Assert.True(state.ShouldPresent(true));
-    }
-
-    [Fact]
-    public void ReEnablingPhoneScreenExplicitlyClearsDismissal()
-    {
-        var state = new PhoneSessionPresentation();
-        state.DismissForEpisode();
-        state.EnableAgain();
-        Assert.True(state.ShouldPresent(true));
-    }
-
-    [Theory]
-    [InlineData(false,true,true)]
-    [InlineData(true,false,true)]
-    [InlineData(true,true,false)]
-    public void ReentryUnavailableWithoutActiveEnabledPhoneIntent(bool connected,bool wants,bool enabled)
-    {
-        var state = new PhoneSessionPresentation();
-        state.DismissForEpisode();
-        Assert.False(state.CanReenter(connected,wants,enabled));
-        Assert.False(state.TryReenter(connected,wants,enabled));
-        Assert.True(state.DismissedInEpisode);
-    }
-
-    [Fact]
-    public void ExplicitReentryClearsSameEpisodeDismissalOnlyOnce()
-    {
-        var state = new PhoneSessionPresentation();
-        Assert.False(state.CanReenter(true,true,true));
-        state.DismissForEpisode();
-        Assert.True(state.CanReenter(true,true,true));
-        Assert.True(state.TryReenter(true,true,true));
-        Assert.True(state.ShouldPresent(true));
-        Assert.False(state.TryReenter(true,true,true));
-    }
-
-    [Fact]
-    public void EndedClearsReentryAndNextEpisodeCanPresent()
-    {
-        var state = new PhoneSessionPresentation();
-        state.DismissForEpisode();
-        state.OnTransition(ConnectionTransitionKind.Ended);
-        Assert.False(state.CanReenter(true,true,true));
-        Assert.True(state.ShouldPresent(true));
-    }
-
-    [Fact]
-    public void ReentryAfterExplicitDismissalUsesSameLiveUuEpisode()
+    public void BriefCaptureInterruptionKeepsDisplayAndSessionResumeDoesNotRequireReentry()
     {
         var tracker = new UuConnectionTracker();
-        var state = new PhoneSessionPresentation();
         var t = DateTimeOffset.UnixEpoch;
-        var phone = new ControllerInfo("test", ControllerKind.Phone);
-        var active = new UuSignals(false, phone, true);
-        foreach (var transition in tracker.Update(active,t)) state.OnTransition(transition.Kind);
-        state.DismissForEpisode();
-        Assert.False(state.ShouldPresent(tracker.WantsPhoneScreen(t)));
-        Assert.True(state.TryReenter(tracker.IsConnected,tracker.WantsPhoneScreen(t),true));
-        Assert.True(state.ShouldPresent(tracker.WantsPhoneScreen(t)));
-        state.DismissForEpisode();
-        var inactive = new UuSignals(false,null,false);
-        foreach (var transition in tracker.Update(inactive,t.AddSeconds(2))) state.OnTransition(transition.Kind);
-        Assert.False(state.CanReenter(tracker.IsConnected,tracker.WantsPhoneScreen(t.AddSeconds(2)),true));
-        foreach (var transition in tracker.Update(inactive,t.AddSeconds(18))) state.OnTransition(transition.Kind);
-        Assert.False(state.DismissedInEpisode);
-        foreach (var transition in tracker.Update(active,t.AddSeconds(20))) state.OnTransition(transition.Kind);
-        Assert.True(state.ShouldPresent(tracker.WantsPhoneScreen(t.AddSeconds(20))));
+        var active = new UuSignals(false, new ControllerInfo("test", ControllerKind.Phone), true);
+        tracker.Update(active, t);
+        var inactive = new UuSignals(false, null, false);
+        tracker.Update(inactive, t.AddSeconds(2));
+        Assert.False(tracker.IsConnected);
+        Assert.True(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t.AddSeconds(2)), true));
+        tracker.Update(active, t.AddSeconds(4));
+        Assert.True(tracker.IsConnected);
+        Assert.True(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t.AddSeconds(4)), true));
+    }
+
+    [Fact]
+    public void TrueDisconnectReleasesDisplayAndNewPhoneSessionCreatesAgain()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var active = new UuSignals(false, new ControllerInfo("test", ControllerKind.Phone), true);
+        var inactive = new UuSignals(false, null, false);
+        tracker.Update(active, t);
+        tracker.Update(inactive, t.AddSeconds(2));
+        var ended = tracker.Update(inactive, t.AddSeconds(18));
+        Assert.Contains(ended, x => x.Kind == ConnectionTransitionKind.Ended);
+        Assert.False(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t.AddSeconds(18)), true));
+        tracker.Update(active, t.AddSeconds(20));
+        Assert.True(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t.AddSeconds(20)), true));
+    }
+
+    [Fact]
+    public void DesktopOnlySessionDoesNotCreatePhoneScreen()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        tracker.Update(new UuSignals(false, new ControllerInfo("test", ControllerKind.Desktop), true), t);
+        Assert.False(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t), true));
+    }
+
+    [Fact]
+    public void ExplicitSettingCanDisableAndEnableDuringTheSameSession()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        tracker.Update(new UuSignals(false, new ControllerInfo("test", ControllerKind.Phone), true), t);
+        Assert.True(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t), true));
+        Assert.False(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t), false));
+        Assert.True(PhoneSessionPresentation.ShouldKeepDisplay(tracker.WantsPhoneScreen(t), true));
     }
 }

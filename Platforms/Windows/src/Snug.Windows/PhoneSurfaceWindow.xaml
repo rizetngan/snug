@@ -396,19 +396,6 @@
                                    FontSize="18" VerticalAlignment="Center" MaxWidth="180"/>
                     </StackPanel>
                 </Button>
-                <!-- Matches upstream PhoneHomeView: exit phone screen beside model selector. -->
-                <Button x:Name="DismissPhoneButton" HorizontalAlignment="Right" Margin="0,0,64,0"
-                        Width="56" Height="56" Click="DismissPhone_Click"
-                        ToolTip="退出手机屏" AutomationProperties.Name="退出手机屏">
-                    <Grid Width="28" Height="31">
-                        <Border Width="17" Height="27" HorizontalAlignment="Left"
-                                BorderBrush="{StaticResource PhoneTint}" BorderThickness="2"
-                                CornerRadius="4"/>
-                        <Path Data="M 10,15 L 27,15 M 21,9 L 27,15 L 21,21"
-                              Stroke="{StaticResource PhoneTint}" StrokeThickness="2"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-                    </Grid>
-                </Button>
                 <Button x:Name="PhoneModelButton" HorizontalAlignment="Right" Width="56" Height="56"
                         Click="PhoneModel_Click" ToolTip="手机型号" AutomationProperties.Name="手机型号">
                     <Grid Width="25" Height="33">
@@ -451,32 +438,6 @@
                                         <Button x:Name="ForceQuitButton" Style="{StaticResource InlineDestructive}"
                                                 Content="强制退出" Click="ForceQuit_Click"
                                                 AutomationProperties.Name="强制退出 App"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                            <!-- Upstream PhoneHomeView places this confirmation in the header. -->
-                            <Border x:Name="DismissPhoneBanner" Visibility="Collapsed"
-                                    Background="{StaticResource PhoneCard}" CornerRadius="12"
-                                    Padding="16" Margin="0,12,0,0">
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="↪" FontSize="24" Foreground="#E33B43"
-                                                   VerticalAlignment="Top" Margin="0,0,12,0"/>
-                                        <StackPanel>
-                                            <TextBlock Text="退出手机屏？" FontSize="18"
-                                                       FontWeight="SemiBold" TextTrimming="None"/>
-                                            <TextBlock Text="窗口还原，下次远程时恢复" FontSize="16"
-                                                       Foreground="{StaticResource PhoneSecondary}"
-                                                       Margin="0,4,0,0" TextTrimming="None"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-                                        <Button Style="{StaticResource InlineCancel}"
-                                                Click="CancelConfirm_Click" Margin="0,0,12,0"
-                                                AutomationProperties.Name="取消退出手机屏"><TextBlock Text="取消" Foreground="#17171A" FontWeight="Medium"/></Button>
-                                        <Button Style="{StaticResource InlineDestructive}" Content="退出"
-                                                Click="ConfirmDismissInline_Click"
-                                                AutomationProperties.Name="确认退出手机屏"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>

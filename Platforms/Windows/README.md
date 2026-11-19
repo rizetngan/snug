@@ -56,4 +56,4 @@ PowerShell 示例：
 ## 致谢与许可
 
 Snug 原作者 zephyr4123，项目前身 UUyc-companion（AoyamaShou）。延续原版的完整版权、提交历史和社区致谢；Windows 平台另感谢 Virtual Display Driver 与 NefCon。见仓库根目录 [MIT 许可证](../../LICENSE) 与 [第三方许可](installer/THIRD_PARTY_NOTICES.md)。Snug 非 UU远程 官方软件。
-手机端主动退出手机屏后，本次 UU 会话期间主屏右下角显示「进入手机屏」；点击重新创建手机屏，再通过 UU 切换显示器。会话结束或关闭手机屏开关后隐藏入口。
+0.2.42 起，同一次 UU 会话内通过 UU 切换主屏和 Snug Phone，无需销毁或重建虚拟屏。使用 App 资源库中的「还原窗口」将受管理窗口归还，手机屏与资源库保持可用。会话结束或关闭手机屏开关后恢复窗口并释放虚拟屏。

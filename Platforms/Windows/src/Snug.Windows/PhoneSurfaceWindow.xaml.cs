@@ -22,7 +22,6 @@ public partial class PhoneSurfaceWindow : Window
     private bool _showAll;
     private RunningApp? _pendingQuit;
     private WindowInfo? _pendingClose;
-    private bool _pendingDismissScreen;
     private bool _busy;
     private bool _refreshQueued;
     private IntPtr _previousForeground;
@@ -58,7 +57,6 @@ public partial class PhoneSurfaceWindow : Window
         DataContext = this;
         Opacity = 0;
         CloseButton.Visibility = preview ? Visibility.Visible : Visibility.Collapsed;
-        DismissPhoneButton.Visibility = Visibility.Visible;
         PhoneModelPicker.ChoiceSelected += (_, choice) =>
         {
             HidePhoneModel();
@@ -368,9 +366,7 @@ public partial class PhoneSurfaceWindow : Window
     {
         _pendingClose = null;
         _pendingQuit = null;
-        _pendingDismissScreen = false;
         ActiveConfirmation = null;
-        DismissPhoneBanner.Visibility = Visibility.Collapsed;
         ConfirmationOverlay.Visibility = Visibility.Collapsed;
     }
 
@@ -386,14 +382,6 @@ public partial class PhoneSurfaceWindow : Window
         ClearConfirmation();
         _pendingClose = window;
         ActiveConfirmation = "close:" + window.Key.ProcessId + ":" + window.Key.Handle;
-    }
-
-    private void DismissPhone_Click(object sender, RoutedEventArgs e)
-    {
-        ClearConfirmation();
-        _pendingDismissScreen = true;
-        DismissPhoneBanner.Visibility = Visibility.Visible;
-        PhoneDragScroll.StopScrolling(HomeScroll); HomeScroll.ScrollToTop();
     }
 
     private void CancelConfirm_Click(object sender, RoutedEventArgs e) => ClearConfirmation();
@@ -422,23 +410,12 @@ public partial class PhoneSurfaceWindow : Window
         await WithBusyAsync($"正在关闭 {window.Title}", () => _controller.CloseWindowAsync(window, IsPreview));
     }
 
-    private async void ConfirmDismissInline_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_pendingDismissScreen) return;
-        ClearConfirmation();
-        if (IsPreview) { Close(); return; }
-        await WithBusyAsync("正在退出手机屏", _controller.DismissPhoneForEpisodeAsync);
-    }
-
     private async void ConfirmAction_Click(object sender, RoutedEventArgs e)
     {
         var quit = _pendingQuit;
         var close = _pendingClose;
-        var dismissScreen = _pendingDismissScreen;
         ClearConfirmation();
-        if (dismissScreen)
-            await WithBusyAsync("正在退出手机屏", _controller.DismissPhoneForEpisodeAsync);
-        else if (quit is not null)
+        if (quit is not null)
             await WithBusyAsync($"正在退出 {quit.App.Name}", () =>
                 _controller.QuitAppAsync(quit, IsPreview));
         else if (close is not null)
@@ -529,7 +506,7 @@ public partial class PhoneSurfaceWindow : Window
     {
         ClearConfirmation();
         if (!IsPreview)
-            await WithBusyAsync("正在还原窗口", _controller.PutBackAsync);
+            await WithBusyAsync("正在还原窗口", _controller.RestoreManagedWindowAsync);
     }
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 }

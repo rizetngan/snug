@@ -23,7 +23,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private PhoneChoice CurrentDisplayChoice => _activeDisplayPhoneChoice ?? _phoneChoice;
     private readonly UuSessionDetector _uuDetector = new();
     private readonly UuConnectionTracker _connection = new();
-    private readonly PhoneSessionPresentation _phonePresentation = new();
     private readonly MouseGestureHook _gestureHook = new();
     private readonly Screenshots _screenshots = new(new WindowScreenshotService());
     private ScreenshotPanelWindow? _screenshotPanel;
@@ -55,8 +54,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private bool _orphanCleanupStarted;
     private volatile WindowRestoreRecord? _placed;
     private PhoneSurfaceWindow? _phoneSurface;
-    private PhoneReentryWindow? _phoneReentry;
-    private long _phoneEpisode;
     private HomeBarWindow? _homeBar;
     private AppBackBarWindow? _appBackBar;
     private bool _previewOpen;
@@ -123,8 +120,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             if (!Set(ref _phoneScreenEnabled, value)) return;
             SaveSettings();
             UuCaptureAcceptanceAudit.Record("SessionCommand", new { command = "phone-screen-enabled-changed", enabled = value });
-            if (value) _phonePresentation.EnableAgain();
-            _phoneReentry?.Hide();
             if (!value && _phoneDisplay is not null && !_creatingSession)
             {
                 UuCaptureAcceptanceAudit.Record("EndPhoneSessionTrigger", new { source = "phone-screen-disabled", connected = _connection.IsConnected, wantsPhoneScreen = _connection.WantsPhoneScreen(DateTimeOffset.UtcNow) });
@@ -308,62 +303,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         // existing monitor and apply this new model on the next full episode.
         if (_phoneDisplay is not null)
             ActivityStatus = "已保存机型；为保持 UU 当前屏幕不掉线，下次远程会话生效。";
-    }
-
-    /// <summary>Upstream PhoneDesk.dismissScreen: release just this session's phone screen.</summary>
-    public async Task DismissPhoneForEpisodeAsync()
-    {
-        if (_phoneDisplay is null || _endingSession) return;
-        UuCaptureAcceptanceAudit.Record("EndPhoneSessionTrigger", new { source = "dismiss-phone-for-episode", connected = _connection.IsConnected, wantsPhoneScreen = _connection.WantsPhoneScreen(DateTimeOffset.UtcNow), phoneScreenEnabled = PhoneScreenEnabled });
-        _phonePresentation.DismissForEpisode();
-        await EndPhoneSessionAsync();
-        if (_phoneDisplay is not null)
-        {
-            _phonePresentation.EnableAgain();
-            ActivityStatus = "窗口还原失败；手机屏仍保留，请先处理窗口。";
-        }
-    }
-
-    private bool CanReenterPhoneScreen(DateTimeOffset now) =>
-        !_disposed && !_creatingSession && !_endingSession && !_previewOpen
-        && _phoneDisplay is null && _placed is null
-        && _phonePresentation.CanReenter(_connection.IsConnected,
-            _connection.WantsPhoneScreen(now), PhoneScreenEnabled);
-
-    private void SyncPhoneReentry(DateTimeOffset now)
-    {
-        if (!CanReenterPhoneScreen(now) || _availableSnugDisplay is not null)
-        {
-            _phoneReentry?.Hide();
-            return;
-        }
-        var primary = Displays.FirstOrDefault(d => d.IsPrimary);
-        if (primary is null) { _phoneReentry?.Hide(); return; }
-        DisplayStatus = "手机屏已退出";
-        _phoneReentry ??= new PhoneReentryWindow(ReenterPhoneScreenAsync);
-        _phoneReentry.Present(primary);
-    }
-
-    public async Task ReenterPhoneScreenAsync()
-    {
-        var now = DateTimeOffset.UtcNow;
-        if (!CanReenterPhoneScreen(now) || _displayEnumerator.FindSnugDisplay() is not null) return;
-        if (!_phonePresentation.TryReenter(_connection.IsConnected,
-            _connection.WantsPhoneScreen(now), PhoneScreenEnabled)) return;
-        var episode = _phoneEpisode;
-        _phoneReentry?.Hide();
-        UuCaptureAcceptanceAudit.Record("SessionCommand", new { command = "reenter-phone-screen" });
-        try { await StartPhoneSessionAsync(); }
-        finally
-        {
-            if (_phoneDisplay is null && episode == _phoneEpisode && PhoneScreenEnabled)
-                _phonePresentation.DismissForEpisode();
-            if (!_disposed)
-            {
-                RefreshDisplays();
-                SyncPhoneReentry(DateTimeOffset.UtcNow);
-            }
-        }
     }
 
     public void StartCatalogPreview()
@@ -899,7 +838,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public async Task<bool> FinishForQuitAsync()
     {
         _timer.Stop();
-        _phoneReentry?.Hide();
         await PutBackAsync();
         if (_placed is not null)
         {
@@ -1253,6 +1191,25 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     public Task PutBackAsync() => _actionLane.RunAsync(PutBackCoreAsync);
 
+    // A user-requested window restore is not a display/session termination.
+    // Keep the same monitor, the same catalog, and its current display mode.
+    public Task RestoreManagedWindowAsync() => _actionLane.RunAsync(async () =>
+    {
+        if (_disposed || _endingSession || _phoneDisplay is not { } display || !HasPlacedWindow) return;
+        UuCaptureAcceptanceAudit.Record("RestoreManagedWindow", new { stage = "begin", deviceName = display.DeviceName });
+        await PutBackCoreAsync();
+        var restored = !HasPlacedWindow;
+        if (restored && !_endingSession && !_disposed && _phoneDisplay is not null)
+            ShowPhoneList(restoreListMode: false);
+        UuCaptureAcceptanceAudit.Record("RestoreManagedWindow", new
+        {
+            stage = "complete", restored, placedWindow = HasPlacedWindow,
+            phoneDisplay = _phoneDisplay is not null, deviceName = _phoneDisplay?.DeviceName,
+            sameDisplay = _phoneDisplay?.DeviceName == display.DeviceName,
+            sameBounds = _phoneDisplay?.Bounds == display.Bounds
+        });
+    });
+
     private async Task PutBackCoreAsync()
     {
         _screenshots.Dismiss();
@@ -1315,7 +1272,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             await RevealPlacedWindowAsync(placed);
     }
 
-    public void ShowPhoneList()
+    public void ShowPhoneList(bool restoreListMode = true)
     {
         _showingPhoneList = true;
         _screenshots.Dismiss();
@@ -1326,7 +1283,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (_phoneSurface is { IsVisible: false }) _phoneSurface.Show();
         SyncGestures();
         RefreshWindows();
-        _ = RestoreListModeAsync();
+        if (restoreListMode) _ = RestoreListModeAsync();
     }
 
     private async Task CompleteAskingDialogAsync()
@@ -1369,12 +1326,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var signals = _uuDetector.Sample();
         ConnectionDiagnostics = _uuDetector.LastSignalSummary + " · " + _uuDetector.LocalControllerSummary;
         var transitions = _connection.Update(signals, now);
-        foreach (var transition in transitions)
-        {
-            if (transition.Kind == ConnectionTransitionKind.Ended) _phoneEpisode++;
-            _phonePresentation.OnTransition(transition.Kind);
-        }
-
         var wantsPhoneScreen = _connection.WantsPhoneScreen(now);
         if (transitions.Count > 0 || now - _lastAcceptanceAuditAt >= TimeSpan.FromSeconds(1))
         {
@@ -1389,7 +1340,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 wantsPhoneScreen,
                 transitions = transitions.Select(t => t.Kind.ToString()).ToArray(),
                 phoneScreenEnabled = PhoneScreenEnabled,
-                presentationDismissed = _phonePresentation.DismissedInEpisode,
+                presentationDismissed = false, // Legacy audit field; no local dismissal state.
                 endingSession = _endingSession,
                 creatingSession = _creatingSession,
                 phoneDisplay = _phoneDisplay is not null,
@@ -1436,19 +1387,19 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _ = RefreshDriverStatusAsync();
         }
 
-        SyncPhoneReentry(now);
-        if (_phonePresentation.ShouldPresent(wantsPhoneScreen) && PhoneScreenEnabled)
+        var keepPhoneDisplay = PhoneSessionPresentation.ShouldKeepDisplay(wantsPhoneScreen, PhoneScreenEnabled);
+        if (keepPhoneDisplay)
         {
             if (_phoneDisplay is null && !_creatingSession && !_endingSession) _ = StartPhoneSessionAsync();
         }
         else if (_phoneDisplay is not null && !_previewOpen && !_endingSession && !_creatingSession)
         {
-            UuCaptureAcceptanceAudit.Record("EndPhoneSessionTrigger", new { source = "on-tick-no-longer-wanted", connected = _connection.IsConnected, wantsPhoneScreen, dismissed = _phonePresentation.DismissedInEpisode, phoneScreenEnabled = PhoneScreenEnabled });
+            UuCaptureAcceptanceAudit.Record("EndPhoneSessionTrigger", new { source = "on-tick-no-longer-wanted", connected = _connection.IsConnected, wantsPhoneScreen, dismissed = false, phoneScreenEnabled = PhoneScreenEnabled });
             _ = EndPhoneSessionAsync();
         }
         else if (!_creatingSession && !_endingSession && !_orphanCleanupStarted
             && now - _startedAt > TimeSpan.FromSeconds(4)
-            && (!_phonePresentation.ShouldPresent(wantsPhoneScreen) || !PhoneScreenEnabled)
+            && !keepPhoneDisplay
             && _driver.IsManagedBySnug)
         {
             _orphanCleanupStarted = true;
@@ -1648,7 +1599,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         if (_endingSession) return;
         _endingSession = true;
-        UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "begin", connected = _connection.IsConnected, wantsPhoneScreen = _connection.WantsPhoneScreen(DateTimeOffset.UtcNow), dismissed = _phonePresentation.DismissedInEpisode, phoneScreenEnabled = PhoneScreenEnabled, placedWindow = _placed is not null, phoneDisplay = _phoneDisplay is not null });
+        UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "begin", connected = _connection.IsConnected, wantsPhoneScreen = _connection.WantsPhoneScreen(DateTimeOffset.UtcNow), dismissed = false, phoneScreenEnabled = PhoneScreenEnabled, placedWindow = _placed is not null, phoneDisplay = _phoneDisplay is not null });
         await PutBackAsync();
         UuCaptureAcceptanceAudit.Record("EndPhoneSession", new { stage = "after-putback", placedWindow = _placed is not null, putBackStatus = ActivityStatus, putBackSucceeded = ActivityStatus == "窗口已还原" });
         if (_placed is not null)
@@ -1916,8 +1867,6 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         _screenshotPanel = null;
         _timer.Stop();
         _timer.Tick -= OnTick;
-        _phoneReentry?.Close();
-        _phoneReentry = null;
         _uuDetector.Dispose();
         UuCaptureAcceptanceAudit.Close();
         _gestureHook.Dispose();
