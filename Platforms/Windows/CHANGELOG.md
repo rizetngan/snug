@@ -1,10 +1,16 @@
 # Windows changelog
 
+## 0.2.45 — evidence-based session response (candidate)
+
+- Use a four-second early expiry only after interruption and continuously verified inactive capture inventory; any positive signal or incomplete capture evidence prevents the fast path. Normal six-second reconnect, ten-second departed-controller grace and topology/rebuild guards unchanged.
+- Reuse successful driver readiness instead of a redundant blocking PING. Keep owned-display and physical monitor checks, mode settling and restore semantics intact.
+- Additional phase timing and regression tests. Early expiry not validated on the user's existing late-attached UU server; its fallback remains six seconds.
+
 ## 0.2.44 — six-second full-session reconnect trial (candidate)
 
 - Reduce the full-session interruption grace from 10s to 6s. Keep the existing 10s grace for a departed controller while another controller remains connected.
 - Retain the 500ms polling, 1.5s debounce, 5s topology quiet window, 2s unknown-controller grace and 3s capture rebuild protection. No further change to driver readiness or input processing.
-- Real-phone short-interruption and cleanup acceptance pending.
+- One recorded iPhone episode completed normally: Connected-to-ready 5.32s, Interrupted-to-display-stop 7.95s. No unintended Interrupted/Ended. A separate interruption/resume was not observed in this trace.
 
 ## 0.2.43 — shorter session response (candidate)
 

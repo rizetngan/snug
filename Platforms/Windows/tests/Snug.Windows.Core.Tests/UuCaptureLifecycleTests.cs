@@ -71,12 +71,24 @@ public sealed class UuCaptureLifecycleTests
     {
         var c=Start();var old=new UuSignals(false,null,null,LogFallback:true);
         var fused=UuCaptureLifecycle.Combine(old,c.Snapshot(T));
-        Assert.False(fused.IsPresent);Assert.False(fused.LogFallback);
+        Assert.False(fused.IsPresent);Assert.False(fused.LogFallback);Assert.True(fused.CaptureVerifiedInactive);
         var phone=old with { Controllers=[new("iPhone",ControllerKind.Phone)] };
         Assert.True(UuCaptureLifecycle.Combine(phone,c.Snapshot(T)).IsPresent);
         var peer = new UuSignals(false,null,false,PeerConnection:true);
         Assert.False(UuCaptureLifecycle.Combine(peer,c.Snapshot(T)).IsPresent);
         c.Invalidate();Assert.Equal(old,UuCaptureLifecycle.Combine(old,c.Snapshot(T)));
+    }
+    [Fact] public void IncompleteInventoryDoesNotAuthorizeEarlyExpiry()
+    {
+        var current = new UuSignals(false,null,null,LogFallback:true,CaptureVerifiedInactive:true);
+        var incomplete = UuCaptureLifecycle.Combine(current,new(UuCapturePhase.Inactive,0,false));
+        Assert.False(incomplete.CaptureVerifiedInactive);
+        Assert.True(incomplete.LogFallback);
+        var unknown = UuCaptureLifecycle.Combine(current,new(UuCapturePhase.Unknown,0,false));
+        Assert.False(unknown.CaptureVerifiedInactive);
+        var rebuilding = UuCaptureLifecycle.Combine(current,new(UuCapturePhase.Rebuilding,0,true));
+        Assert.False(rebuilding.CaptureVerifiedInactive);
+        Assert.True(rebuilding.IsPresent);
     }
     [Fact] public void RealCaptureSupersedesLogOnlyWithoutClaimingPhone()
     {

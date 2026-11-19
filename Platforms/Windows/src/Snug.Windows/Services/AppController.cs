@@ -1332,6 +1332,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             UuCaptureAcceptanceAudit.Record("SessionState", new
             {
                 captureActive = signals.CaptureActive,
+                captureVerifiedInactive = signals.CaptureVerifiedInactive,
                 logFallback = signals.LogFallback,
                 isPresent = signals.IsPresent,
                 controllerCount = signals.Controllers?.Count ?? (signals.Controller is null ? 0 : 1),
@@ -1409,7 +1410,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     private async Task RefreshDriverStatusAsync()
     {
-        var online = await _driver.PingAsync();
+        ApplyDriverStatus(await _driver.PingAsync());
+    }
+
+    private void ApplyDriverStatus(bool online)
+    {
         IsDriverReady = online && _driver.IsManagedBySnug;
         DriverStatusText = _driver.IsRebootRequired
             ? "已安装 · 重启后生效"
@@ -1471,7 +1476,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             _driver.WritePhoneProfile(_activeDisplayPhoneChoice);
             if (!await ChangeOwnedDisplayAsync(true))
                 throw new InvalidOperationException("无法启动 Snug 手机屏。请在设置中修复虚拟显示驱动。");
-            await RefreshDriverStatusAsync();
+            // Startup already verified driver readiness and the owned display.
+            ApplyDriverStatus(true);
+            UuCaptureAcceptanceAudit.Record("StartPhoneSession", new { stage = "topology-ready" });
 
             var deadline = DateTimeOffset.UtcNow.AddSeconds(15);
             DisplayInfo? display = null;
@@ -1486,6 +1493,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 throw new InvalidOperationException("驱动已响应，但 Windows 尚未识别 Snug Phone 显示器。");
 
             ActivatePhoneDisplay(display);
+            UuCaptureAcceptanceAudit.Record("StartPhoneSession", new { stage = "mode-start" });
             if (await ChangePhoneModeAsync(new ScreenFit(CurrentDisplayChoice.Screen).BaseWidth))
             {
                 DisplayStatus = $"Snug 手机屏 · {_phoneDisplay!.Bounds.Width} × {_phoneDisplay.Bounds.Height}";

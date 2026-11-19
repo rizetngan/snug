@@ -20,3 +20,11 @@ User confirmed stable. One actual episode: Connected 03:20:33.124Z, ready 03:20:
 - Full-session ReconnectWindow 10s -> 6s. DepartedControllerGrace stays 10s while another controller remains. No other timing or driver change.
 - 287/287 tests pass, including exact boundary, repeated interrupted unknown-controller sessions, and late reconnect. Build/package succeeded.
 - Package 58983831 bytes, SHA256 52D4A0685A71DAF1C9B6CE8D3D54CA65836A1E63C94904732D8745A881F43619. Real-phone validation pending. 0.2.43 package remains the rollback baseline.
+
+## 0.2.44 measured acceptance
+One complete recorded episode: Connected 04:51:46.634Z, ready 04:51:51.953Z (5319ms); start-to-ready 3302ms; driver 1511ms; post-driver 1774ms. Interrupted 04:52:41.616Z, Ended 04:52:47.660Z (6044ms), display-stop 04:52:49.561Z (7946ms). No unexpected teardown. Capture inventory was incomplete, transitioning Active to Unknown, not Inactive. A separate Resumed event was not observed.
+
+## 0.2.45 design
+Keep 6s fallback; 4s accelerated expiry only on continuously verified inactive complete inventory and no presence, after the normal debounce and quiet window. Current UU server predates monitor start; its incomplete inventory cannot authorize acceleration. No claim of an explicit UU disconnect event. Reuse proven startup driver readiness; preserve display checks and add topology-ready/mode-start timestamps. Actual results pending.
+
+- 0.2.45 automated result: 294/294 core tests passed; application and capture monitor builds 0 warnings/errors. Setup compiled (58974041 bytes, SHA256 A75538BA4F52F1AAA8AC7BAB05BB5A7DFF155EAA38DC6D58C7C14D76CC575168). 0.2.44 remains installed. Candidate not released. No new real-phone timing asserted.

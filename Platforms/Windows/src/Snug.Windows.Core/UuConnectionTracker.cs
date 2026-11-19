@@ -9,7 +9,8 @@ public readonly record struct UuSignals(
     bool? CaptureActive,
     IReadOnlyList<ControllerInfo>? Controllers = null,
     bool LogFallback = false,
-    bool PeerConnection = false)
+    bool PeerConnection = false,
+    bool CaptureVerifiedInactive = false)
 {
     public bool IsPresent => OverlayVisible || Controller is not null ||
         Controllers is { Count: > 0 } || CaptureActive == true || LogFallback;
@@ -39,6 +40,7 @@ public sealed class UuConnectionTracker
     // Full session interruption: 6s trial. Keep the accepted longer grace
     // for a departed controller while another controller is still present.
     public static readonly TimeSpan ReconnectWindow = TimeSpan.FromSeconds(6);
+    public static readonly TimeSpan VerifiedInactiveGrace = TimeSpan.FromSeconds(4);
     public static readonly TimeSpan DepartedControllerGrace = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan UnknownControllerGrace = TimeSpan.FromSeconds(2);
 
@@ -46,6 +48,7 @@ public sealed class UuConnectionTracker
     private DateTimeOffset? _sessionStartedAt;
     private DateTimeOffset? _quietUntil;
     private DateTimeOffset? _interruptedAt;
+    private DateTimeOffset? _verifiedInactiveSince;
     private List<ControllerInfo> _controllers = [];
     private readonly Dictionary<string, (ControllerInfo Controller, DateTimeOffset Until)> _departed =
         new(StringComparer.OrdinalIgnoreCase);
@@ -79,10 +82,25 @@ public sealed class UuConnectionTracker
     public IReadOnlyList<ConnectionTransition> Update(UuSignals signals, DateTimeOffset now)
     {
         var transitions = new List<ConnectionTransition>();
-        // Advance expiry before reconnecting, as upstream RemoteSession does.
-        if (!_connected && _interruptedAt is { } old && now - old > ReconnectWindow)
+        // A fresh, complete and continuously inactive capture inventory can
+        // shorten an already-interrupted episode, never a positive signal.
+        // Loss of inventory or positive evidence resets the early deadline.
+        if (signals.CaptureVerifiedInactive && signals.CaptureActive == false && !signals.IsPresent)
+            _verifiedInactiveSince ??= now;
+        else
+            _verifiedInactiveSince = null;
+        // Keep the full reconnect grace for unknown/incomplete capture.
+        // If a positive sample arrives just before evaluation of the early
+        // deadline, it wins; normal expiry still follows upstream ordering.
+        if (!_connected && _interruptedAt is { } old &&
+            (now - old > ReconnectWindow ||
+             (_verifiedInactiveSince is { } verified &&
+              now - old > VerifiedInactiveGrace &&
+              now - verified > VerifiedInactiveGrace &&
+              (_quietUntil is null || now > _quietUntil))))
         {
             _interruptedAt = null;
+            _verifiedInactiveSince = null;
             _sessionStartedAt = null;
             _lastPresentAt = null;
             _quietUntil = null;
