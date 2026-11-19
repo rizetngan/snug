@@ -1,11 +1,11 @@
 # Windows changelog
 
-## 0.2.41 — deferred mouse replay candidate
+## 0.2.41 — deferred mouse replay
 
 - Fix a measured ~1-second low-level mouse-hook stall when replaying taps.
 - Deliver replayed mouse input on a separate serial worker, with each click submitted as a single SendInput batch. Keep gesture classification on the existing input thread.
 - Preserve double-click, long-press right-click, selection, scrolling, and release a synthetic held button on session changes.
-- Native Windows hook-chain and example-window tests pass. Actual 0.2.41 phone latency still needs verification; iOS/UU keyboard viewport issue remains open.
+- 283 core tests pass; native Windows replay, double-click, long-press, selection, scroll and cancellation smoke tests pass. The maintainer verified the phone tap-latency fix and disconnect restoration on a real iPhone. Repeated keyboard opening can still fail to pan in UU itself, including on a normal Windows screen; no Snug-side workaround is introduced.
 
 ## 0.2.40 — input latency candidate
 
