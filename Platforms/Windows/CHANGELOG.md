@@ -1,10 +1,10 @@
 # Windows changelog
 
-## 0.2.47 — overlapping verified response windows (candidate)
+## 0.2.47 — overlapping verified response windows (release)
 
 - One second of continuously verified complete active capture can expedite the unknown-device session path; retain two seconds for incomplete, rebuilding or log-only evidence. Known desktop classification still vetoes phone display; faster capture detection is not phone identification.
 - Overlap the two-second continuous verified inactivity window with disconnect debounce; retain at least a half-second after Interrupted and the topology protection. Six-second fallback and ten-second departed-controller grace unchanged.
-- Preserve the existing three-second capture rebuild guard, driver, restoration and display protection. Phone tests pending.
+- Preserve the existing three-second capture rebuild guard, driver, restoration and display protection. 300/300 tests passed; one measured iPhone episode completed normally (4.43s Connected-to-ready; 2.82s Interrupted-to-display-stop; 3.82s first Inactive-to-display-stop). Maintainer approved this release; no claim of comprehensive multi-device or long-term validation.
 
 ## 0.2.46 — two-second verified inactivity trial (candidate)
 
