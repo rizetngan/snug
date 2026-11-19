@@ -8,7 +8,7 @@
 
 Built for UU Remote · Dedicated portrait display · Native gestures · App Library
 
-![Windows x64](https://img.shields.io/badge/Windows-x64-blue) ![Preview](https://img.shields.io/badge/version-0.2.39%20preview-orange) [![MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+![Windows x64](https://img.shields.io/badge/Windows-x64-blue) ![Preview](https://img.shields.io/badge/version-0.2.41%20preview-orange) [![MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 [简体中文](README.md) · English
 
@@ -28,11 +28,13 @@ Snug for Windows is an independent community port of [Snug](https://github.com/z
 
 ## Download
 
-**0.2.39 community preview** · Windows x64 (tested on Windows 10 22H2).
+**0.2.41 community preview** · Windows x64 (tested on Windows 10 22H2).
 
-**[Download installer (Windows x64)](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.39/Snug-Setup-0.2.39-x64.exe)** · [Release notes](https://github.com/rizetngan/snug-for-windows/releases/tag/v0.2.39) · [SHA-256 checksums](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.39/SHA256SUMS.txt) · [Build from source](Platforms/Windows/README.en.md)
+**[Download installer (Windows x64)](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.41/Snug-Setup-0.2.41-x64.exe)** · [Release notes](https://github.com/rizetngan/snug-for-windows/releases/tag/v0.2.41) · [SHA-256 checksums](https://github.com/rizetngan/snug-for-windows/releases/download/v0.2.41/SHA256SUMS.txt) · [Build from source](Platforms/Windows/README.en.md)
 
-Installer: Snug-Setup-0.2.39-x64.exe. This tested community preview fixes leaked ETW monitor sessions. Includes the .NET runtime and signed virtual display driver; the installer is unsigned and requires administrator authorization. If upgrading with an already-running UU server and Snug does not detect a connection, disconnect UU and restart its Windows service or restart Windows once.
+Installer: Snug-Setup-0.2.41-x64.exe. This community preview fixes an observed ~1-second input replay stall, with the tap-latency fix verified on an actual iPhone with UU Remote. Includes the .NET runtime and signed virtual display driver; the installer is unsigned and requires administrator authorization. If upgrading with an already-running UU server and Snug does not detect a connection, disconnect UU and restart its Windows service or restart Windows once.
+
+Known issue: reopening the UU iOS keyboard without tapping the remote input again may fail to pan the viewport. This also reproduces on the normal computer screen; tap the input again before opening the keyboard.
 
 ## Native experience
 
