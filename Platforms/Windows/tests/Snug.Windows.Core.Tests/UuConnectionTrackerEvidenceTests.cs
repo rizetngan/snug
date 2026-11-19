@@ -19,17 +19,17 @@ public sealed class UuConnectionTrackerEvidenceTests
     }
 
     [Fact]
-    public void CompleteInactiveInventoryEndsAfterFourSeconds()
+    public void CompleteInactiveInventoryEndsAfterTwoSeconds()
     {
         var tracker = Interrupt(Verified);
-        for (var t = 2.5; t <= 6; t += .5)
+        for (var t = 2.5; t <= 4; t += .5)
         {
             Assert.Empty(tracker.Update(Verified, T.AddSeconds(t)));
             Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(t)));
         }
         Assert.Equal(ConnectionTransitionKind.Ended,
-            Assert.Single(tracker.Update(Verified, T.AddSeconds(6.5))).Kind);
-        Assert.False(tracker.WantsPhoneScreen(T.AddSeconds(6.5)));
+            Assert.Single(tracker.Update(Verified, T.AddSeconds(4.5))).Kind);
+        Assert.False(tracker.WantsPhoneScreen(T.AddSeconds(4.5)));
     }
 
     [Theory]
@@ -51,19 +51,47 @@ public sealed class UuConnectionTrackerEvidenceTests
         var tracker = Interrupt(Unknown);
         tracker.Update(Verified, T.AddSeconds(5));
         Assert.Empty(tracker.Update(Verified, T.AddSeconds(6.5)));
-        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(8)));
+        Assert.Empty(tracker.Update(Verified, T.AddSeconds(7)));
+        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(7)));
         Assert.Equal(ConnectionTransitionKind.Ended,
-            Assert.Single(tracker.Update(Verified, T.AddSeconds(8.5))).Kind);
+            Assert.Single(tracker.Update(Verified, T.AddSeconds(7.5))).Kind);
     }
 
     [Fact]
     public void ReturningCaptureWinsOverEarlyExpiry()
     {
         var tracker = Interrupt(Verified);
-        tracker.Update(Verified, T.AddSeconds(5.5));
+        tracker.Update(Verified, T.AddSeconds(3.5));
         Assert.Equal(ConnectionTransitionKind.Resumed,
-            Assert.Single(tracker.Update(Active, T.AddSeconds(6.5))).Kind);
-        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(6.5)));
+            Assert.Single(tracker.Update(Active, T.AddSeconds(4.5))).Kind);
+        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(4.5)));
+    }
+
+    [Fact]
+    public void VerifiedFastPathRetainsCaptureRebuildAndDisconnectDebounce()
+    {
+        var tracker = new UuConnectionTracker();
+        var capture = new UuCaptureLifecycle();
+        var server = new UuServerGeneration(1, 1);
+        capture.Begin(server, true);
+        capture.Observe(server, 1, true, T);
+        UuSignals Sample(double seconds) =>
+            UuCaptureLifecycle.Combine(Unknown, capture.Snapshot(T.AddSeconds(seconds)));
+        tracker.Update(Sample(0), T);
+        capture.Observe(server, 1, false, T.AddSeconds(1));
+        for (double time = 1; time < 4; time += .5)
+        {
+            Assert.True(Sample(time).IsPresent);
+            Assert.Empty(tracker.Update(Sample(time), T.AddSeconds(time)));
+        }
+        Assert.True(Sample(4).CaptureVerifiedInactive);
+        Assert.Empty(tracker.Update(Sample(4), T.AddSeconds(4)));
+        Assert.Empty(tracker.Update(Sample(5), T.AddSeconds(5)));
+        Assert.Equal(ConnectionTransitionKind.Interrupted,
+            Assert.Single(tracker.Update(Sample(5.5), T.AddSeconds(5.5))).Kind);
+        Assert.Empty(tracker.Update(Sample(7.5), T.AddSeconds(7.5)));
+        Assert.Equal(ConnectionTransitionKind.Ended,
+            Assert.Single(tracker.Update(Sample(8), T.AddSeconds(8))).Kind);
     }
 
     [Fact]
@@ -76,10 +104,10 @@ public sealed class UuConnectionTrackerEvidenceTests
         Assert.True(tracker.IsConnected);
         Assert.Equal(ConnectionTransitionKind.Interrupted,
             Assert.Single(tracker.Update(Verified, T.AddSeconds(5.1))).Kind);
-        Assert.Empty(tracker.Update(Verified, T.AddSeconds(8)));
+        Assert.Empty(tracker.Update(Verified, T.AddSeconds(7)));
         var controller = Verified with { Controller = new("test", ControllerKind.Phone) };
         Assert.Equal(ConnectionTransitionKind.Resumed,
-            Assert.Single(tracker.Update(controller, T.AddSeconds(9.2))).Kind);
-        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(9.2)));
+            Assert.Single(tracker.Update(controller, T.AddSeconds(7.2))).Kind);
+        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(7.2)));
     }
 }

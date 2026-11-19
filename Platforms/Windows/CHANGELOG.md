@@ -1,10 +1,16 @@
 # Windows changelog
 
+## 0.2.46 — two-second verified inactivity trial (candidate)
+
+- Reduce only the verified-inactive grace after interruption from 4s to 2s. Keep 6s fallback, 10s departed-controller grace, 3s capture-rebuild protection, 1.5s debounce and 5s topology quiet window.
+- Keep driver readiness, physical monitor protection, restoration and connection behavior from 0.2.45.
+- Test exact boundaries, positive evidence, lost inventory, late evidence and integrated capture rebuild plus debounce. Real-phone verification pending.
+
 ## 0.2.45 — evidence-based session response (candidate)
 
 - Use a four-second early expiry only after interruption and continuously verified inactive capture inventory; any positive signal or incomplete capture evidence prevents the fast path. Normal six-second reconnect, ten-second departed-controller grace and topology/rebuild guards unchanged.
 - Reuse successful driver readiness instead of a redundant blocking PING. Keep owned-display and physical monitor checks, mode settling and restore semantics intact.
-- Additional phase timing and regression tests. Early expiry not validated on the user's existing late-attached UU server; its fallback remains six seconds.
+- After a normal UU service restart, real-phone trace confirmed complete inventory and 4.04s early expiry, 5.79s interruption-to-display-stop. Connection-to-ready 4.73s.
 
 ## 0.2.44 — six-second full-session reconnect trial (candidate)
 

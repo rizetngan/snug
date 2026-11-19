@@ -28,3 +28,11 @@ One complete recorded episode: Connected 04:51:46.634Z, ready 04:51:51.953Z (531
 Keep 6s fallback; 4s accelerated expiry only on continuously verified inactive complete inventory and no presence, after the normal debounce and quiet window. Current UU server predates monitor start; its incomplete inventory cannot authorize acceleration. No claim of an explicit UU disconnect event. Reuse proven startup driver readiness; preserve display checks and add topology-ready/mode-start timestamps. Actual results pending.
 
 - 0.2.45 automated result: 294/294 core tests passed; application and capture monitor builds 0 warnings/errors. Setup compiled (58974041 bytes, SHA256 A75538BA4F52F1AAA8AC7BAB05BB5A7DFF155EAA38DC6D58C7C14D76CC575168). 0.2.44 remains installed. Candidate not released. No new real-phone timing asserted.
+
+## 0.2.45 verified-inactive live acceptance
+After normal UU service restart (new server PID 2196), actual phone capture transitioned Active/complete to Inactive/complete. Connected 05:13:39.819Z, ready 05:13:44.552Z (4734ms); verified inactive first monitor sample 05:13:52.172Z; Interrupted 05:13:53.173Z, Ended 05:13:57.208Z (4035ms), display-stop 05:13:58.961Z (5788ms after interruption; 6789ms after first inactive monitor sample). Startup requested a duplicate-free signed driver task, ready in 1471ms. No accidental teardown in this recorded phone episode. Separate service-restart log-only episode excluded.
+
+## 0.2.46 decision
+Trial 2s verified-inactive grace, with all other gates unchanged. Expected about 3.8s from Interrupted to display-stop under comparable conditions. Physical user-action-to-release is longer because of capture rebuild grace, debounce and UU's own detection; do not confuse the 2s policy with total latency. Data collection required; no release.
+
+- 0.2.46 automated result: 295/295 tests passed. Installer compiled, 58985486 bytes, SHA256 81FE24C59BA2C57C460F6D686A926D698604B9D2AA82A29662167179F4E0CCD5. Independent candidate uses existing monitor and driver; installed 0.2.44 remains untouched. Real-phone acceptance pending; no release.

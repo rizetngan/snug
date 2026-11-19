@@ -40,7 +40,7 @@ public sealed class UuConnectionTracker
     // Full session interruption: 6s trial. Keep the accepted longer grace
     // for a departed controller while another controller is still present.
     public static readonly TimeSpan ReconnectWindow = TimeSpan.FromSeconds(6);
-    public static readonly TimeSpan VerifiedInactiveGrace = TimeSpan.FromSeconds(4);
+    public static readonly TimeSpan VerifiedInactiveGrace = TimeSpan.FromSeconds(2);
     public static readonly TimeSpan DepartedControllerGrace = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan UnknownControllerGrace = TimeSpan.FromSeconds(2);
 
