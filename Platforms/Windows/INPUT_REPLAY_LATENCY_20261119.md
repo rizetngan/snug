@@ -46,3 +46,10 @@ Mean chain 0.602ms; six exact releases, original release return=1 each time. Pre
 - Public release and main branch unchanged until phone acceptance.
 ## Candidate artifact
 Installer: 58,980,920 bytes; SHA256 1694A90FE31F0AB165E48C856C63246AE921066AEC7498DE677878E089C27295. Built before the source commit. Local only.
+
+## Installed candidate acceptance
+- Installed exact local 0.2.41 package in user session; setup exit 0, no reboot. Verified installed assembly version and input gestures enabled.
+- User explicitly reported on 2026-11-19: "延迟问题解决了" (latency issue resolved). Mark subjective mobile tap latency ACCEPTED. The 041 observer expired before the user's session, so no new measured phone-side latency figure is available. Do not present the isolated smoke measurements as iPhone results.
+- Post-test check: primary display only, original placement ledger absent; current session reports no placed window/virtual screen.
+- Keep a3e0487 (and this acceptance record) as the input-fix baseline for keyboard viewport investigation. Do not regress serial replay or reintroduce injection within WH_MOUSE_LL.
+- Outstanding: keyboard first-open viewport panning and the broader mobile gesture regression matrix. No public release performed as part of this acceptance record.
