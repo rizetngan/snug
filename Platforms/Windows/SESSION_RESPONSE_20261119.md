@@ -36,3 +36,11 @@ After normal UU service restart (new server PID 2196), actual phone capture tran
 Trial 2s verified-inactive grace, with all other gates unchanged. Expected about 3.8s from Interrupted to display-stop under comparable conditions. Physical user-action-to-release is longer because of capture rebuild grace, debounce and UU's own detection; do not confuse the 2s policy with total latency. Data collection required; no release.
 
 - 0.2.46 automated result: 295/295 tests passed. Installer compiled, 58985486 bytes, SHA256 81FE24C59BA2C57C460F6D686A926D698604B9D2AA82A29662167179F4E0CCD5. Independent candidate uses existing monitor and driver; installed 0.2.44 remains untouched. Real-phone acceptance pending; no release.
+
+## 0.2.46 measured acceptance
+Two real episodes: Connected-to-ready 5065/4843ms; Interrupted-to-Ended 2033/2007ms; Interrupted-to-display-stop 3761/3821ms. Monitor first Inactive-to-display-stop 4774/4844ms. Actual phone action time not recorded; earlier capture rebuild and UU delay are additional. No premature teardown observed; both episodes returned to idle.
+
+## 0.2.47 trial
+Verified active capture: 1s continuous evidence, only for the existing unknown-device path; known desktop remains a veto, other evidence retains 2s fallback. Verified inactive timer overlaps the 1.5s debounce, with at least 500ms after Interrupted and no reduction to topology or capture rebuild guard. No claim of explicit UU disconnect or verified phone identity. Retain 6s fallback and 10s departed-controller grace. Test with existing service, no administrator change.
+
+- 0.2.47 automated result: 300/300 tests passed, app and monitor Release builds succeeded (zero warnings/errors); installer 58976368 bytes, SHA256 4C2A83776CE3F6BAEBBE4CEA1392D8D6142879194CD5F44D52914FDC3AA4CA6D. Independent candidate uses running monitor and driver; real phone timing pending. No release.

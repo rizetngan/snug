@@ -89,9 +89,62 @@ public sealed class UuConnectionTrackerEvidenceTests
         Assert.Empty(tracker.Update(Sample(5), T.AddSeconds(5)));
         Assert.Equal(ConnectionTransitionKind.Interrupted,
             Assert.Single(tracker.Update(Sample(5.5), T.AddSeconds(5.5))).Kind);
-        Assert.Empty(tracker.Update(Sample(7.5), T.AddSeconds(7.5)));
+        Assert.Empty(tracker.Update(Sample(6), T.AddSeconds(6)));
         Assert.Equal(ConnectionTransitionKind.Ended,
-            Assert.Single(tracker.Update(Sample(8), T.AddSeconds(8))).Kind);
+            Assert.Single(tracker.Update(Sample(6.5), T.AddSeconds(6.5))).Kind);
+    }
+
+    [Fact]
+    public void ConfirmedActiveCanAdvanceUnknownDeviceGraceWithoutRebuildingFalsePositive()
+    {
+        var tracker = new UuConnectionTracker();
+        var verified = UuCaptureLifecycle.Combine(Unknown, new(UuCapturePhase.Active, 1, true));
+        tracker.Update(verified, T);
+        Assert.False(tracker.WantsPhoneScreen(T.AddSeconds(.5)));
+        tracker.Update(verified, T.AddSeconds(1));
+        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(1)));
+        tracker.Update(UuCaptureLifecycle.Combine(Unknown, new(UuCapturePhase.Rebuilding, 0, true)), T.AddSeconds(1.5));
+        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(1.5)));
+        tracker.Update(verified with { Controller = new("desktop", ControllerKind.Desktop) }, T.AddSeconds(1.6));
+        Assert.False(tracker.WantsPhoneScreen(T.AddSeconds(1.6)));
+    }
+
+    [Theory]
+    [InlineData(UuCapturePhase.Active, 1, false)]
+    [InlineData(UuCapturePhase.Rebuilding, 0, true)]
+    public void IncompleteOrRebuildingCaptureRetainsTwoSecondUnknownGrace(UuCapturePhase phase, int count, bool complete)
+    {
+        var tracker = new UuConnectionTracker();
+        var signal = UuCaptureLifecycle.Combine(Unknown, new(phase, count, complete));
+        tracker.Update(signal, T);
+        tracker.Update(signal, T.AddSeconds(1));
+        Assert.False(tracker.WantsPhoneScreen(T.AddSeconds(1)));
+        Assert.True(tracker.WantsPhoneScreen(T.AddSeconds(2)));
+    }
+
+    [Fact]
+    public void BriefVerifiedCaptureCannotExpediteUnknownDevice()
+    {
+        var tracker = new UuConnectionTracker();
+        var verified = UuCaptureLifecycle.Combine(Unknown, new(UuCapturePhase.Active, 1, true));
+        tracker.Update(verified, T);
+        tracker.Update(new(false,null,true), T.AddSeconds(.5));
+        tracker.Update(verified, T.AddSeconds(1));
+        Assert.False(tracker.WantsPhoneScreen(T.AddSeconds(1)));
+    }
+
+    [Fact]
+    public void ContinuousVerifiedInactivityOverlapsDebounceButPreservesInterruptedTick()
+    {
+        var tracker = new UuConnectionTracker();
+        tracker.Update(Active, T);
+        Assert.Empty(tracker.Update(Verified, T.AddSeconds(.5)));
+        Assert.Empty(tracker.Update(Verified, T.AddSeconds(1.5)));
+        Assert.Equal(ConnectionTransitionKind.Interrupted,
+            Assert.Single(tracker.Update(Verified, T.AddSeconds(2))).Kind);
+        Assert.Empty(tracker.Update(Verified, T.AddSeconds(2.5)));
+        Assert.Equal(ConnectionTransitionKind.Ended,
+            Assert.Single(tracker.Update(Verified, T.AddSeconds(3))).Kind);
     }
 
     [Fact]
@@ -104,7 +157,7 @@ public sealed class UuConnectionTrackerEvidenceTests
         Assert.True(tracker.IsConnected);
         Assert.Equal(ConnectionTransitionKind.Interrupted,
             Assert.Single(tracker.Update(Verified, T.AddSeconds(5.1))).Kind);
-        Assert.Empty(tracker.Update(Verified, T.AddSeconds(7)));
+        Assert.Empty(tracker.Update(Verified, T.AddSeconds(6.9)));
         var controller = Verified with { Controller = new("test", ControllerKind.Phone) };
         Assert.Equal(ConnectionTransitionKind.Resumed,
             Assert.Single(tracker.Update(controller, T.AddSeconds(7.2))).Kind);

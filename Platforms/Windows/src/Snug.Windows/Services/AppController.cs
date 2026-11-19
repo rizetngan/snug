@@ -1333,6 +1333,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             {
                 captureActive = signals.CaptureActive,
                 captureVerifiedInactive = signals.CaptureVerifiedInactive,
+                captureVerifiedActive = signals.CaptureVerifiedActive,
                 logFallback = signals.LogFallback,
                 isPresent = signals.IsPresent,
                 controllerCount = signals.Controllers?.Count ?? (signals.Controller is null ? 0 : 1),

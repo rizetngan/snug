@@ -10,7 +10,8 @@ public readonly record struct UuSignals(
     IReadOnlyList<ControllerInfo>? Controllers = null,
     bool LogFallback = false,
     bool PeerConnection = false,
-    bool CaptureVerifiedInactive = false)
+    bool CaptureVerifiedInactive = false,
+    bool CaptureVerifiedActive = false)
 {
     public bool IsPresent => OverlayVisible || Controller is not null ||
         Controllers is { Count: > 0 } || CaptureActive == true || LogFallback;
@@ -43,12 +44,16 @@ public sealed class UuConnectionTracker
     public static readonly TimeSpan VerifiedInactiveGrace = TimeSpan.FromSeconds(2);
     public static readonly TimeSpan DepartedControllerGrace = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan UnknownControllerGrace = TimeSpan.FromSeconds(2);
+    public static readonly TimeSpan VerifiedActiveGrace = TimeSpan.FromSeconds(1);
+    public static readonly TimeSpan MinimumInterruptedGrace = TimeSpan.FromMilliseconds(500);
 
     private DateTimeOffset? _lastPresentAt;
     private DateTimeOffset? _sessionStartedAt;
     private DateTimeOffset? _quietUntil;
     private DateTimeOffset? _interruptedAt;
     private DateTimeOffset? _verifiedInactiveSince;
+    private DateTimeOffset? _verifiedActiveSince;
+    private bool _verifiedActiveReady;
     private List<ControllerInfo> _controllers = [];
     private readonly Dictionary<string, (ControllerInfo Controller, DateTimeOffset Until)> _departed =
         new(StringComparer.OrdinalIgnoreCase);
@@ -70,7 +75,7 @@ public sealed class UuConnectionTracker
             .Select(item => item.Controller)).ToArray();
         if (active.Any(c => c.Kind == ControllerKind.Phone)) return true;
         if (active.Length > 0 && active.All(c => c.Kind == ControllerKind.Desktop)) return false;
-        return _sessionStartedAt is { } started && now - started >= UnknownControllerGrace;
+        return _verifiedActiveReady || (_sessionStartedAt is { } started && now - started >= UnknownControllerGrace);
     }
 
     public void NoteSelfInducedChange(DateTimeOffset now)
@@ -95,12 +100,14 @@ public sealed class UuConnectionTracker
         if (!_connected && _interruptedAt is { } old &&
             (now - old > ReconnectWindow ||
              (_verifiedInactiveSince is { } verified &&
-              now - old > VerifiedInactiveGrace &&
+              now - old >= MinimumInterruptedGrace &&
               now - verified > VerifiedInactiveGrace &&
               (_quietUntil is null || now > _quietUntil))))
         {
             _interruptedAt = null;
             _verifiedInactiveSince = null;
+            _verifiedActiveSince = null;
+            _verifiedActiveReady = false;
             _sessionStartedAt = null;
             _lastPresentAt = null;
             _quietUntil = null;
@@ -116,6 +123,16 @@ public sealed class UuConnectionTracker
         if (signals.IsPresent)
         {
             _lastPresentAt = now;
+            // Complete active capture is stronger evidence of an actual
+            // session, not of phone identity. Known desktop still wins.
+            // Only a sustained sample can expedite the unknown-device path.
+            if (signals.CaptureVerifiedActive && signals.CaptureActive == true)
+            {
+                _verifiedActiveSince ??= now;
+                if (now - _verifiedActiveSince.Value >= VerifiedActiveGrace)
+                    _verifiedActiveReady = true;
+            }
+            else _verifiedActiveSince = null;
             // An unreadable/empty controller table is not negative evidence.
             // "UU Remote" is the Windows log-only placeholder, not a device.
             var next = GetControllers(signals);
@@ -136,6 +153,7 @@ public sealed class UuConnectionTracker
             return transitions;
         }
 
+        _verifiedActiveSince = null;
         if (_connected && _lastPresentAt is { } last
             && now - last > DisconnectDebounce
             && (_quietUntil is null || now > _quietUntil))

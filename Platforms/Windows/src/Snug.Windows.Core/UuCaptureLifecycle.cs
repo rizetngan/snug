@@ -82,9 +82,11 @@ public sealed class UuCaptureLifecycle
     public static UuSignals Combine(UuSignals current, UuCaptureSnapshot capture) =>
         capture.CaptureActive switch
         {
-            true => current with { CaptureActive = true, CaptureVerifiedInactive = false },
+            true => current with { CaptureActive = true, CaptureVerifiedInactive = false,
+                CaptureVerifiedActive = capture.Phase == UuCapturePhase.Active &&
+                    capture.CompleteInventory && capture.ObservedContexts > 0 },
             false when capture.CompleteInventory && capture.ObservedContexts == 0
-                => current with { CaptureActive = false, LogFallback = false, CaptureVerifiedInactive = true },
-            _ => current with { CaptureVerifiedInactive = false }
+                => current with { CaptureActive = false, LogFallback = false, CaptureVerifiedInactive = true, CaptureVerifiedActive = false },
+            _ => current with { CaptureVerifiedInactive = false, CaptureVerifiedActive = false }
         };
 }
