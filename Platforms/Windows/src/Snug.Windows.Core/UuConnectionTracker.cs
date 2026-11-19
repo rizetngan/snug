@@ -36,7 +36,8 @@ public sealed class UuConnectionTracker
 {
     public static readonly TimeSpan DisconnectDebounce = TimeSpan.FromSeconds(1.5);
     public static readonly TimeSpan QuietWindow = TimeSpan.FromSeconds(5);
-    public static readonly TimeSpan ReconnectWindow = TimeSpan.FromSeconds(15);
+    // Windows candidate: retain a 10s reconnect window after interruption.
+    public static readonly TimeSpan ReconnectWindow = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan UnknownControllerGrace = TimeSpan.FromSeconds(2);
 
     private DateTimeOffset? _lastPresentAt;

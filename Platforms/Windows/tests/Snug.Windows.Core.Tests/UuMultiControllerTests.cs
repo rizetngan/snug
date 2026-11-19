@@ -36,14 +36,15 @@ public sealed class UuMultiControllerTests
     }
 
     [Fact]
-    public void RecentlyDepartedPhoneStaysWithinUpstreamReconnectWindow()
+    public void RecentlyDepartedPhoneStaysWithinWindowsReconnectWindow()
     {
         var tracker = new UuConnectionTracker();
         tracker.Update(Local(Desktop, Phone), Start);
         var leave = tracker.Update(Local(Desktop), Start.AddSeconds(1));
         Assert.Equal(ConnectionTransitionKind.ControllerChanged, Assert.Single(leave).Kind);
         Assert.True(tracker.WantsPhoneScreen(Start.AddSeconds(10)));
-        Assert.False(tracker.WantsPhoneScreen(Start.AddSeconds(17)));
+        Assert.True(tracker.WantsPhoneScreen(Start.AddSeconds(11)));
+        Assert.False(tracker.WantsPhoneScreen(Start.AddSeconds(11.5)));
     }
 
     [Fact]

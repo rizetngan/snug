@@ -1,11 +1,17 @@
 # Windows changelog
 
+## 0.2.43 — shorter session response (candidate)
+
+- Reduce the Windows reconnect grace after interruption from 15s to 10s. Keep the 1.5s disconnect debounce, 5s self-induced topology guard, 2s unknown-controller grace, and capture rebuild protection.
+- Skip the initial cold-driver ping only when no Snug monitor exists. Keep SYSTEM task ownership checks, no-duplicates behavior, post-start ping and display geometry readiness checks.
+- Candidate timing and real-phone interruption/cleanup acceptance pending.
+
 ## 0.2.42 — retain the phone display for the UU session (candidate)
 
 - Keep the existing phone display and app state when switching between monitors in UU. Remove the episode-dismiss/re-entry flow and primary-desktop floating button.
 - Use the existing App Library restore-window action to return a managed window without destroying or changing the phone display; keep the same catalog available.
 - Preserve existing UU lifetime detection, disable/quit/disconnect cleanup, and 0.2.41 input replay implementation.
-- Actual mobile same-display switch and window restore acceptance pending.
+- Maintainer confirmed same-session monitor switching and window restoration on iPhone. Audit verified RestoreManagedWindow completed with sameDisplay and sameBounds true; physical display cleanup completed after disconnect.
 
 ## 0.2.41 — deferred mouse replay
 

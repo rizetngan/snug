@@ -16,9 +16,9 @@ public sealed class UuConnectionTrackerAcceptanceTests
         Assert.Empty(tracker.Update(new(false,null,false),t.AddSeconds(3)));
         var interrupted=tracker.Update(new(false,null,false),t.AddSeconds(3.51));
         Assert.Contains(interrupted,x=>x.Kind==ConnectionTransitionKind.Interrupted);
-        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(18.50)));
-        var ended=tracker.Update(new(false,null,false),t.AddSeconds(18.52));
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(13.50)));
+        var ended=tracker.Update(new(false,null,false),t.AddSeconds(13.52));
         Assert.Contains(ended,x=>x.Kind==ConnectionTransitionKind.Ended);
-        Assert.False(tracker.WantsPhoneScreen(t.AddSeconds(18.52)));
+        Assert.False(tracker.WantsPhoneScreen(t.AddSeconds(13.52)));
     }
 }

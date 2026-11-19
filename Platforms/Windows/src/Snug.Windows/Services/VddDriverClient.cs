@@ -136,13 +136,25 @@ public sealed class VddDriverClient
     public async Task<bool> StartDisplayAsync(CancellationToken cancellationToken = default)
     {
         if (!IsManagedBySnug || !IsInstalled || !IsInstallComplete || IsRebootRequired) return false;
-        if (await PingAsync(cancellationToken)) return true;
+        // When our monitor is absent, the driver pipe normally does not exist.
+        // Avoid spending the initial connection timeout probing a cold device.
+        // The existing SYSTEM task validates ownership and installs with
+        // --no-duplicates; the post-start readiness check still gates success.
+        var existingDisplay = new DisplayEnumerator().FindSnugDisplay() is not null;
+        var timing = Stopwatch.StartNew();
+        if (existingDisplay && await PingAsync(cancellationToken)) return true;
+        cancellationToken.ThrowIfCancellationRequested();
+        UuCaptureAcceptanceAudit.Record("VddStartTiming", new { stage = "request", existingDisplay, elapsedMs = timing.ElapsedMilliseconds });
         if (!await RunScheduledTaskAsync(StartTask, cancellationToken)) return false;
 
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
         while (DateTimeOffset.UtcNow < deadline)
         {
-            if (await PingAsync(cancellationToken)) return true;
+            if (await PingAsync(cancellationToken))
+            {
+                UuCaptureAcceptanceAudit.Record("VddStartTiming", new { stage = "ready", elapsedMs = timing.ElapsedMilliseconds });
+                return true;
+            }
             await Task.Delay(400, cancellationToken);
         }
         return false;

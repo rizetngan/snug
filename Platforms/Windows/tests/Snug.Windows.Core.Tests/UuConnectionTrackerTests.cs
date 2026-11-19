@@ -50,6 +50,53 @@ public sealed class UuConnectionTrackerTests
 
 
     [Fact]
+    public void TenSecondReconnectBoundaryRetainsPhoneUntilExpiry()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var active = new UuSignals(false, new("test", ControllerKind.Phone), true);
+        var absent = new UuSignals(false, null, false);
+        tracker.Update(active, t);
+        Assert.Empty(tracker.Update(absent, t.AddSeconds(1.5)));
+        Assert.Equal(ConnectionTransitionKind.Interrupted,
+            Assert.Single(tracker.Update(absent, t.AddSeconds(2))).Kind);
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(12)));
+        Assert.Empty(tracker.Update(absent, t.AddSeconds(12)));
+        Assert.Equal(ConnectionTransitionKind.Ended,
+            Assert.Single(tracker.Update(absent, t.AddSeconds(12.5))).Kind);
+        Assert.False(tracker.WantsPhoneScreen(t.AddSeconds(12.5)));
+    }
+
+    [Fact]
+    public void ReconnectJustBeforeNewBoundaryResumesSameEpisode()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var active = new UuSignals(false, new("test", ControllerKind.Phone), true);
+        var absent = new UuSignals(false, null, false);
+        tracker.Update(active, t);
+        tracker.Update(absent, t.AddSeconds(2));
+        Assert.Equal(ConnectionTransitionKind.Resumed,
+            Assert.Single(tracker.Update(active, t.AddSeconds(11.9))).Kind);
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(11.9)));
+    }
+
+    [Fact]
+    public void RebuildingCaptureAndQuietWindowStillProtectScreenSwitches()
+    {
+        var tracker = new UuConnectionTracker();
+        var t = DateTimeOffset.UnixEpoch;
+        var phone = new ControllerInfo("test", ControllerKind.Phone);
+        tracker.Update(new(false, phone, true), t);
+        tracker.NoteSelfInducedChange(t);
+        Assert.Empty(tracker.Update(new(false, null, null), t.AddSeconds(4.9)));
+        var rebuilding = UuCaptureLifecycle.Combine(new(false, null, null), new(UuCapturePhase.Rebuilding, 0, true));
+        Assert.Empty(tracker.Update(rebuilding, t.AddSeconds(5.1)));
+        Assert.True(tracker.IsConnected);
+        Assert.True(tracker.WantsPhoneScreen(t.AddSeconds(5.1)));
+    }
+
+    [Fact]
     public void ContinuousUnknownSessionCreatesPhoneScreenAfterGrace()
     {
         var tracker = new UuConnectionTracker();
